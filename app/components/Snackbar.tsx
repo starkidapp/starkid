@@ -31,5 +31,5 @@ export default function Snackbar({ visible, message, actionLabel, onAction, onHi
 const styles = StyleSheet.create({
   container: { position: 'absolute', left: 16, right: 16, bottom: 20, backgroundColor: '#111', padding: 12, borderRadius: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', zIndex: 1000 },
   message: { color: '#fff', flex: 1, marginRight: 12 },
-  action: { color: '#ffd166', fontWeight: '800' },
+  action: { color: '#ffd166', fontWeight: '600' },
 });

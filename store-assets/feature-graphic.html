@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 1024px; height: 500px; overflow: hidden; font-family: 'Helvetica Neue', Arial, sans-serif; }
+
+  .bg {
+    width: 1024px; height: 500px;
+    background: linear-gradient(135deg, #87CEEB 0%, #B8E4F7 40%, #D4F1FF 70%, #FFF8E7 100%);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 60px;
+    overflow: hidden;
+  }
+
+  /* Cloud decorations */
+  .cloud {
+    position: absolute;
+    background: white;
+    border-radius: 50%;
+    opacity: 0.5;
+  }
+  .c1 { width: 120px; height: 70px; top: 20px; left: -20px; border-radius: 40px; }
+  .c2 { width: 80px; height: 50px; top: 40px; left: 60px; border-radius: 30px; }
+  .c3 { width: 100px; height: 60px; bottom: 30px; right: 80px; border-radius: 35px; }
+  .c4 { width: 70px; height: 40px; bottom: 50px; right: 120px; border-radius: 25px; }
+  .c5 { width: 90px; height: 55px; top: 30px; right: 200px; border-radius: 32px; }
+
+  /* Stars scattered */
+  .star-deco {
+    position: absolute;
+    font-size: 22px;
+    opacity: 0.6;
+  }
+
+  .left-side {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    z-index: 10;
+    flex: 1;
+  }
+
+  .app-name {
+    font-size: 68px;
+    font-weight: 900;
+    color: #2D2A32;
+    line-height: 1;
+    letter-spacing: -1px;
+  }
+  .app-name span { color: #6C63FF; }
+
+  .tagline {
+    font-size: 22px;
+    color: #555;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+  }
+
+  .pills {
+    display: flex;
+    gap: 10px;
+    margin-top: 8px;
+  }
+  .pill {
+    background: white;
+    border-radius: 50px;
+    padding: 8px 18px;
+    font-size: 14px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.10);
+    color: #2D2A32;
+  }
+
+  .right-side {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    z-index: 10;
+  }
+
+  .logo-wrap {
+    width: 280px;
+    height: 280px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    filter: drop-shadow(0 8px 24px rgba(108,99,255,0.25));
+  }
+
+  .logo-wrap img {
+    width: 280px;
+    height: 280px;
+    object-fit: contain;
+  }
+</style>
+</head>
+<body>
+<div class="bg">
+  <!-- Clouds -->
+  <div class="cloud c1"></div>
+  <div class="cloud c2"></div>
+  <div class="cloud c3"></div>
+  <div class="cloud c4"></div>
+  <div class="cloud c5"></div>
+
+  <!-- Floating stars -->
+  <div class="star-deco" style="top:60px; left:380px;">⭐</div>
+  <div class="star-deco" style="top:120px; left:340px; font-size:14px;">✨</div>
+  <div class="star-deco" style="bottom:80px; left:360px;">🌟</div>
+  <div class="star-deco" style="top:40px; right:340px; font-size:14px;">⭐</div>
+  <div class="star-deco" style="bottom:60px; left:480px; font-size:16px;">✨</div>
+
+  <div class="left-side">
+    <div class="app-name"><span>Star</span> Kid</div>
+    <div class="tagline">Tasks, Stars &amp; Rewards for Kids</div>
+    <div class="pills">
+      <div class="pill">⭐ Earn Stars</div>
+      <div class="pill">✅ Track Tasks</div>
+      <div class="pill">🎁 Get Rewards</div>
+    </div>
+  </div>
+
+  <div class="right-side">
+    <div class="logo-wrap">
+      <img src="../assets/images/star-icon.png" />
+    </div>
+  </div>
+</div>
+</body>
+</html>

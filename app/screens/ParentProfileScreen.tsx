@@ -1,5 +1,5 @@
 import { auth, db } from "@/lib/firebase/config";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import {
   EmailAuthProvider,
   reauthenticateWithCredential,
@@ -7,10 +7,13 @@ import {
   updatePassword,
 } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
-import React, { useEffect, useMemo, useState } from "react";
+import { alertNetworkError, checkInternet, isNetworkError } from "../utils/netUtils";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
+  AppState,
   FlatList,
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -24,6 +27,7 @@ import { useKids } from "../context/KidContext";
 import { capitalizeWords } from "../utils/textUtils";
 
 export default function ParentProfileScreen() {
+  const { fromParentDashboard } = useLocalSearchParams();
   const { kids, updateKid } = useKids();
   const [parentName, setParentName] = useState("");
   const [email, setEmail] = useState(auth.currentUser?.email ?? "");
@@ -33,6 +37,11 @@ export default function ParentProfileScreen() {
   const [newParentPin, setNewParentPin] = useState("");
   const [confirmParentPin, setConfirmParentPin] = useState("");
   const [parentPin, setParentPin] = useState<string | null>(null);
+  const [authModalVisible, setAuthModalVisible] = useState(false);
+  const [parentPinInputAttempt, setParentPinInputAttempt] = useState("");
+  const [authenticated, setAuthenticated] = useState(false);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  const appState = useRef(AppState.currentState);
   const [savingPassword, setSavingPassword] = useState(false);
   const [savingParentName, setSavingParentName] = useState(false);
   const [savingParentPin, setSavingParentPin] = useState(false);
@@ -57,11 +66,48 @@ export default function ParentProfileScreen() {
         }
       } catch (error) {
         console.error("Unable to load parent profile:", error);
+      } finally {
+        setInitialLoadComplete(true);
       }
     };
 
     loadProfile();
   }, []);
+
+  useEffect(() => {
+    if (!initialLoadComplete) {
+      return;
+    }
+
+    const fromDashboard = fromParentDashboard === "1";
+
+    if (parentPin) {
+      if (fromDashboard) {
+        setAuthenticated(true);
+        setAuthModalVisible(false);
+      } else {
+        setAuthenticated(false);
+        setAuthModalVisible(true);
+      }
+    }
+  }, [parentPin, initialLoadComplete, fromParentDashboard]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      if (
+        appState.current.match(/inactive|background/) &&
+        nextState === "active"
+      ) {
+        if (parentPin) {
+          setAuthenticated(false);
+          setAuthModalVisible(true);
+        }
+      }
+      appState.current = nextState;
+    });
+
+    return () => subscription.remove();
+  }, [parentPin]);
 
   useEffect(() => {
     const nextPins = kids.reduce<Record<string, string>>((acc, kid) => {
@@ -84,6 +130,7 @@ export default function ParentProfileScreen() {
       return;
     }
 
+    if (!(await checkInternet())) return;
     setSavingParentName(true);
     try {
       await setDoc(
@@ -94,7 +141,7 @@ export default function ParentProfileScreen() {
       Alert.alert("Saved", "Parent profile updated.");
     } catch (error: any) {
       console.error("Profile save failed:", error);
-      Alert.alert("Save failed", error.message || "Unable to save profile.");
+      if (isNetworkError(error)) { alertNetworkError(); } else { Alert.alert("Save failed", error.message || "Unable to save profile."); }
     } finally {
       setSavingParentName(false);
     }
@@ -117,6 +164,7 @@ export default function ParentProfileScreen() {
       return;
     }
 
+    if (!(await checkInternet())) return;
     setSavingPassword(true);
     try {
       const credential = EmailAuthProvider.credential(
@@ -131,10 +179,7 @@ export default function ParentProfileScreen() {
       Alert.alert("Success", "Password updated successfully.");
     } catch (error: any) {
       console.error("Password update failed:", error);
-      Alert.alert(
-        "Password update failed",
-        error.message || "Unable to update password.",
-      );
+      if (isNetworkError(error)) { alertNetworkError(); } else { Alert.alert("Password update failed", error.message || "Unable to update password."); }
     } finally {
       setSavingPassword(false);
     }
@@ -157,6 +202,7 @@ export default function ParentProfileScreen() {
       return;
     }
 
+    if (!(await checkInternet())) return;
     setSavingParentPin(true);
 
     try {
@@ -171,7 +217,7 @@ export default function ParentProfileScreen() {
       Alert.alert("Saved", "Parent access code updated.");
     } catch (error: any) {
       console.error("Parent PIN save failed:", error);
-      Alert.alert("Save failed", error.message || "Unable to update PIN.");
+      if (isNetworkError(error)) { alertNetworkError(); } else { Alert.alert("Save failed", error.message || "Unable to update PIN."); }
     } finally {
       setSavingParentPin(false);
     }
@@ -195,6 +241,17 @@ export default function ParentProfileScreen() {
     }
   };
 
+  const verifyParentPin = () => {
+    if (parentPinInputAttempt === parentPin) {
+      setAuthenticated(true);
+      setAuthModalVisible(false);
+      setParentPinInputAttempt("");
+    } else {
+      Alert.alert("Incorrect code", "Please try again.");
+      setParentPinInputAttempt("");
+    }
+  };
+
   const handleSignOut = async () => {
     await signOut(auth);
     router.replace("/screens/LoginScreen");
@@ -207,7 +264,16 @@ export default function ParentProfileScreen() {
         style={styles.container}
         contentContainerStyle={styles.content}
       >
+        <View style={styles.profileHeader}>
+          <View style={styles.profileAvatarCircle}>
+            <Text style={styles.profileAvatarText}>👤</Text>
+          </View>
+          <Text style={styles.profileTitle}>Parent Profile</Text>
+          <Text style={styles.profileSubtitle}>{email}</Text>
+        </View>
+
         <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Profile Info</Text>
           <Text style={styles.label}>Parent Name</Text>
           <TextInput
             value={parentName}
@@ -351,108 +417,148 @@ export default function ParentProfileScreen() {
         >
           <Text style={styles.buttonText}>Sign Out</Text>
         </TouchableOpacity>
+
+        <Modal visible={authModalVisible} animationType="slide" transparent>
+          <View style={styles.authModalOverlay}>
+            <View style={styles.authModalContainer}>
+              <Text style={styles.authModalTitle}>
+                Enter Parent Access Code
+              </Text>
+              <TextInput
+                value={parentPinInputAttempt}
+                onChangeText={(value) =>
+                  setParentPinInputAttempt(
+                    value.replace(/[^0-9]/g, "").slice(0, 4),
+                  )
+                }
+                placeholder="4-digit code"
+                keyboardType="number-pad"
+                secureTextEntry
+                style={styles.input}
+                maxLength={4}
+              />
+              <TouchableOpacity style={styles.button} onPress={verifyParentPin}>
+                <Text style={styles.buttonText}>Unlock</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F7FBFF",
+  screen: { flex: 1, backgroundColor: '#F5F5FA' },
+  container: { flex: 1, backgroundColor: '#F5F5FA' },
+  content: { padding: 20, paddingBottom: 40 },
+
+  profileHeader: {
+    alignItems: 'center',
+    paddingVertical: 24,
+    marginBottom: 8,
   },
-  content: {
-    padding: 24,
-    paddingBottom: 40,
+  profileAvatarCircle: {
+    width: 72, height: 72, borderRadius: 36,
+    backgroundColor: '#EDEAFF',
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: 12,
+    shadowColor: '#6C63FF', shadowOpacity: 0.2, shadowRadius: 10, elevation: 4,
   },
-  heading: {
-    fontSize: 32,
-    fontWeight: "900",
-    marginBottom: 20,
-    color: "#2D2A32",
-  },
+  profileAvatarText: { fontSize: 36 },
+  profileTitle: { fontSize: 20, fontWeight: '700', color: '#1A1A2E', marginBottom: 4 },
+  profileSubtitle: { fontSize: 13, color: '#8A8F98' },
+
   card: {
-    marginBottom: 18,
+    marginBottom: 14,
     borderRadius: 20,
-    backgroundColor: "#ffffff",
+    backgroundColor: '#ffffff',
     padding: 18,
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOpacity: 0.05,
     shadowRadius: 10,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: "800",
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1A1A2E',
     marginBottom: 14,
   },
   label: {
-    fontSize: 14,
-    color: "#464646",
-    marginBottom: 8,
+    fontSize: 13,
+    color: '#8A8F98',
+    marginBottom: 6,
+    fontWeight: '500',
   },
   input: {
-    backgroundColor: "#F4F6FB",
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 14,
-    fontSize: 16,
+    backgroundColor: '#F5F5FA',
+    borderRadius: 14,
+    padding: 13,
+    marginBottom: 12,
+    fontSize: 15,
+    color: '#1A1A2E',
+    borderWidth: 1,
+    borderColor: '#EDEDF5',
   },
-  disabledInput: {
-    opacity: 0.6,
-  },
+  disabledInput: { opacity: 0.6 },
   button: {
-    backgroundColor: "#6C63FF",
-    borderRadius: 18,
-    paddingVertical: 16,
-    alignItems: "center",
-  },
-  passwordButton: {
-    backgroundColor: "#FB8500",
-  },
-  signOutButton: {
-    backgroundColor: "#D62828",
-    marginTop: 12,
-  },
-  buttonText: {
-    color: "#fff",
-    fontWeight: "900",
-  },
-  kidRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 14,
-  },
-  kidName: {
-    fontSize: 16,
-    fontWeight: "800",
-  },
-  kidHint: {
-    color: "#666",
+    backgroundColor: '#6C63FF',
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
     marginTop: 4,
   },
+  passwordButton: { backgroundColor: '#FB8500' },
+  signOutButton: { backgroundColor: '#FF5D5D', marginTop: 14 },
+  buttonText: { color: '#fff', fontWeight: '600', fontSize: 15 },
+  disabledButton: { opacity: 0.65 },
+
+  kidRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F8',
+  },
+  kidName: { fontSize: 15, fontWeight: '600', color: '#1A1A2E' },
+  kidHint: { color: '#8A8F98', fontSize: 12, marginTop: 2 },
   kidInput: {
     width: 90,
-    backgroundColor: "#F4F6FB",
-    borderRadius: 14,
-    padding: 12,
-    textAlign: "center",
-  },
-  emptyText: {
-    color: "#666",
+    backgroundColor: '#F5F5FA',
+    borderRadius: 12,
+    padding: 11,
+    textAlign: 'center',
     fontSize: 15,
-    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#EDEDF5',
   },
-  disabledButton: {
-    opacity: 0.65,
-  },
-  screen: {
+  emptyText: { color: '#8A8F98', fontSize: 14, marginBottom: 14 },
+
+  authModalOverlay: {
     flex: 1,
-    backgroundColor: "#F7FBFF",
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
   },
-  subtitleText: {
-    color: "#666",
-    marginBottom: 12,
+  authModalContainer: {
+    width: '100%',
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 8,
   },
+  authModalTitle: {
+    fontSize: 18, fontWeight: '700',
+    marginBottom: 16, textAlign: 'center', color: '#1A1A2E',
+  },
+
+  heading: { fontSize: 26, fontWeight: '700', marginBottom: 20, color: '#1A1A2E' },
+  subtitleText: { color: '#8A8F98', marginBottom: 12, fontSize: 13 },
 });

@@ -1,4 +1,3 @@
-import React from 'react';
 import { StyleSheet, Text, TouchableOpacity } from 'react-native';
 interface KidAvatarProps {
   item: { avatar: string; name: string };
@@ -27,16 +26,16 @@ export default function KidAvatar({ item, selected, onPress }: KidAvatarProps) {
 const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
-    padding: 12,
-    borderRadius: 20,
+    padding: 8,
+    borderRadius: 16,
     backgroundColor: '#fff',
-    width: 90,
+    width: 70,
   },
   selected: {
     backgroundColor: '#FFD166',
     borderWidth: 2,
     borderColor: '#FB8500',
   },
-  avatar: { fontSize: 36 },
-  name: { marginTop: 6, fontWeight: '700' },
+  avatar: { fontSize: 26 },
+  name: { marginTop: 4, fontWeight: '700', fontSize: 12 },
 });

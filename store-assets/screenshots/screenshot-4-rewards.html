@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1290px; height: 2796px;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    background: #F5F5FA;
+    overflow: hidden;
+  }
+
+  .status-bar { padding: 40px 60px 0; display: flex; justify-content: space-between; font-size: 36px; font-weight: 700; color: #2D2A32; }
+
+  .hero-card {
+    margin: 40px 60px 0;
+    background: linear-gradient(135deg, #6C63FF 0%, #9B94FF 100%);
+    border-radius: 40px; padding: 60px 60px;
+    display: flex; align-items: center; gap: 40px;
+    box-shadow: 0 12px 48px rgba(108,99,255,0.35);
+  }
+  .avatar-circle {
+    width: 180px; height: 180px; border-radius: 50px;
+    background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center;
+    font-size: 90px; flex-shrink: 0;
+  }
+  .hero-info { flex: 1; }
+  .hero-name { font-size: 68px; font-weight: 900; color: white; }
+  .hero-stars { font-size: 96px; font-weight: 900; color: #FFD700; line-height: 1; margin-top: 10px; }
+  .hero-label { font-size: 36px; color: rgba(255,255,255,0.75); }
+
+  .rank-section { margin: 50px 60px 0; }
+  .sec-title { font-size: 50px; font-weight: 900; color: #2D2A32; margin-bottom: 28px; }
+
+  .rank-card {
+    background: white; border-radius: 28px; padding: 44px 50px;
+    display: flex; align-items: center; gap: 36px; margin-bottom: 20px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+  }
+  .rank-num { font-size: 60px; font-weight: 900; color: #6C63FF; width: 80px; text-align: center; }
+  .rank-emoji { font-size: 56px; width: 80px; text-align: center; }
+  .rank-body { flex: 1; }
+  .rank-name { font-size: 50px; font-weight: 800; color: #2D2A32; }
+  .rank-sub { font-size: 34px; color: #888; margin-top: 6px; }
+  .rank-stars { font-size: 44px; font-weight: 900; color: #FFD700; }
+
+  .bonus-section { margin: 50px 60px 0; }
+  .bonus-row {
+    background: white; border-radius: 24px; padding: 40px 44px;
+    display: flex; align-items: center; gap: 28px; margin-bottom: 20px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.04);
+  }
+  .bonus-icon {
+    width: 90px; height: 90px; border-radius: 24px;
+    display: flex; align-items: center; justify-content: center; font-size: 46px;
+  }
+  .bonus-body { flex: 1; }
+  .bonus-title { font-size: 44px; font-weight: 800; color: #2D2A32; }
+  .bonus-sub { font-size: 32px; color: #888; margin-top: 6px; }
+  .bonus-val { font-size: 44px; font-weight: 900; }
+
+  .caption-band {
+    position: absolute; bottom: 0; left: 0; right: 0; height: 220px;
+    background: linear-gradient(to top, #F5F5FA 60%, transparent);
+    display: flex; align-items: flex-end; justify-content: center;
+    padding-bottom: 60px;
+  }
+  .caption { font-size: 46px; font-weight: 800; color: #6C63FF; text-align: center; }
+  .caption span { color: #2D2A32; font-weight: 400; }
+</style>
+</head>
+<body>
+  <div class="status-bar"><span>9:41</span><span>⚡</span></div>
+
+  <div class="hero-card">
+    <div class="avatar-circle">🦄</div>
+    <div class="hero-info">
+      <div class="hero-name">Layla</div>
+      <div class="hero-stars">⭐ 24</div>
+      <div class="hero-label">stars this month</div>
+    </div>
+  </div>
+
+  <div class="rank-section">
+    <div class="sec-title">🏆 Monthly Ranking</div>
+    <div class="rank-card" style="background: linear-gradient(135deg,#FFF8E7,#FFF3DC);">
+      <div class="rank-num">#1</div>
+      <div class="rank-emoji">🐻</div>
+      <div class="rank-body">
+        <div class="rank-name">Sara</div>
+        <div class="rank-sub">Champion this month!</div>
+      </div>
+      <div class="rank-stars">31 ⭐</div>
+    </div>
+    <div class="rank-card" style="background: linear-gradient(135deg,#F7F6FF,#EDEAFF);">
+      <div class="rank-num">#2</div>
+      <div class="rank-emoji">🦄</div>
+      <div class="rank-body">
+        <div class="rank-name">Layla</div>
+        <div class="rank-sub">Great effort!</div>
+      </div>
+      <div class="rank-stars">24 ⭐</div>
+    </div>
+    <div class="rank-card">
+      <div class="rank-num">#3</div>
+      <div class="rank-emoji">🚀</div>
+      <div class="rank-body">
+        <div class="rank-name">Omar</div>
+        <div class="rank-sub">Keep going!</div>
+      </div>
+      <div class="rank-stars">18 ⭐</div>
+    </div>
+  </div>
+
+  <div class="bonus-section">
+    <div class="sec-title">Recent Activity</div>
+    <div class="bonus-row">
+      <div class="bonus-icon" style="background:#E3FBF3;">🎁</div>
+      <div class="bonus-body">
+        <div class="bonus-title">Bonus – Helped a friend</div>
+        <div class="bonus-sub">Today</div>
+      </div>
+      <div class="bonus-val" style="color:#06D6A0;">+3 ⭐</div>
+    </div>
+    <div class="bonus-row">
+      <div class="bonus-icon" style="background:#EDEAFF;">⭐</div>
+      <div class="bonus-body">
+        <div class="bonus-title">Morning Routine</div>
+        <div class="bonus-sub">Today</div>
+      </div>
+      <div class="bonus-val" style="color:#6C63FF;">+3 ⭐</div>
+    </div>
+    <div class="bonus-row">
+      <div class="bonus-icon" style="background:#FFF4F4;">⚠️</div>
+      <div class="bonus-body">
+        <div class="bonus-title">Missed Homework</div>
+        <div class="bonus-sub">Yesterday</div>
+      </div>
+      <div class="bonus-val" style="color:#FF5D5D;">−2 ⭐</div>
+    </div>
+  </div>
+
+  <div class="caption-band">
+    <div class="caption">Motivate with <span>bonuses</span><br/>and monthly rankings 🏅</div>
+  </div>
+</body>
+</html>

@@ -2,12 +2,10 @@
 
 import { auth, db } from "@/lib/firebase/config";
 import { useRouter } from "expo-router";
-import {
-  createUserWithEmailAndPassword,
-  onAuthStateChanged,
-} from "firebase/auth";
+import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
-import { useEffect, useState } from "react";
+import { alertNetworkError, checkInternet, isNetworkError } from "../utils/netUtils";
+import { useState } from "react";
 import {
   Alert,
   Image,
@@ -26,15 +24,6 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      if (firebaseUser) {
-        router.replace("/(tabs)");
-      }
-    });
-    return unsubscribe;
-  }, [router]);
-
   const registerParent = async () => {
     if (!parentName || !email || !password || !confirmPassword) {
       Alert.alert("Required", "Please fill all fields");
@@ -50,10 +39,11 @@ export default function RegisterScreen() {
 
     if (password.length < 6) {
       Alert.alert("Password", "Password should be at least 6 characters");
-      console.log("Password", "Password should be at least 6 characters");
       return;
     }
-    console.log(email.trim(), password.trim());
+
+    if (!(await checkInternet())) return;
+
     try {
       const result = await createUserWithEmailAndPassword(
         auth,
@@ -70,7 +60,15 @@ export default function RegisterScreen() {
 
       router.replace("/(tabs)");
     } catch (error: any) {
-      Alert.alert("Registration Failed", error.message);
+      if (isNetworkError(error)) {
+        alertNetworkError();
+        return;
+      }
+      const msg =
+        error?.code === "auth/email-already-in-use"
+          ? "This email is already registered. Please log in or use a different email."
+          : error?.message || "Registration failed. Please try again.";
+      Alert.alert("Registration Failed", msg);
     }
   };
 
@@ -98,7 +96,7 @@ export default function RegisterScreen() {
       <TextInput
         placeholder="Email"
         value={email}
-        onChangeText={setEmail}
+        onChangeText={(t) => setEmail(t.replace(/\s/g, ''))}
         autoCapitalize="none"
         keyboardType="email-address"
         style={styles.input}
@@ -107,7 +105,7 @@ export default function RegisterScreen() {
       <TextInput
         placeholder="Parent password"
         value={password}
-        onChangeText={setPassword}
+        onChangeText={(t) => setPassword(t.replace(/\s/g, ''))}
         secureTextEntry
         style={styles.input}
       />
@@ -115,7 +113,7 @@ export default function RegisterScreen() {
       <TextInput
         placeholder="Confirm password"
         value={confirmPassword}
-        onChangeText={setConfirmPassword}
+        onChangeText={(t) => setConfirmPassword(t.replace(/\s/g, ''))}
         secureTextEntry
         style={styles.input}
       />

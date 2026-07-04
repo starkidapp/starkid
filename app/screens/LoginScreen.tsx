@@ -13,6 +13,7 @@ import {
   TouchableOpacity, View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { alertNetworkError, checkInternet, isNetworkError } from "../utils/netUtils";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -34,12 +35,23 @@ export default function LoginScreen() {
       return;
     }
 
+    if (!(await checkInternet())) return;
+
     try {
       await signInWithEmailAndPassword(auth, email.trim(), password);
       router.replace("/(tabs)");
     } catch (error: any) {
       console.error("Login error:", error);
-      Alert.alert("Login Failed", "Invalid email or password");
+      if (isNetworkError(error)) {
+        alertNetworkError();
+      } else if (error?.code === "auth/user-not-found") {
+        Alert.alert(
+          "User Not Registered",
+          "This email is not registered. Please register first."
+        );
+      } else {
+        Alert.alert("Login Failed", "Invalid email or password");
+      }
     }
   };
 
@@ -59,7 +71,7 @@ export default function LoginScreen() {
       <TextInput
         placeholder="Email"
         value={email}
-        onChangeText={setEmail}
+        onChangeText={(t) => setEmail(t.replace(/\s/g, ''))}
         autoCapitalize="none"
         keyboardType="email-address"
         style={styles.input}
@@ -68,13 +80,19 @@ export default function LoginScreen() {
       <TextInput
         placeholder="Password"
         value={password}
-        onChangeText={setPassword}
+        onChangeText={(t) => setPassword(t.replace(/\s/g, ''))}
         secureTextEntry
         style={styles.input}
       />
 
       <TouchableOpacity style={styles.button} onPress={loginParent}>
         <Text style={styles.buttonText}>Login</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        onPress={() => router.push("/screens/ResetPasswordScreen")}
+      >
+        <Text style={styles.link}>Forgot password?</Text>
       </TouchableOpacity>
 
       <TouchableOpacity

@@ -1,7 +1,7 @@
 import { auth, db } from "@/lib/firebase/config";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
-import React, {
+import {
   createContext,
   ReactNode,
   useContext,
@@ -43,6 +43,7 @@ type KidContextType = {
   tasks: Task[];
   completions: Completion[];
   competitions: Competition[];
+  activeCompetitionStartDate: string | null;
   addKid: (kid: Omit<Kid, "id">) => void;
   updateKid: (kid: Kid) => void;
   removeKid: (id: string) => void;
@@ -68,7 +69,14 @@ type KidContextType = {
     taskId: string,
     subtaskId: string,
   ) => boolean;
+  updateTask: (
+    taskId: string,
+    updatedTask: { title: string; subtasks: Subtask[] }
+  ) => void;
+
+  removeTask: (taskId: string) => void;
   resetCompetition: () => void;
+
 };
 
 const KidContext = createContext<KidContextType | undefined>(undefined);
@@ -85,6 +93,7 @@ export function KidProvider({ children }: { children: ReactNode }) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [completions, setCompletions] = useState<Completion[]>([]);
   const [competitions, setCompetitions] = useState<Competition[]>([]);
+  const [activeCompetitionStartDate, setActiveCompetitionStartDate] = useState<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -126,10 +135,25 @@ export function KidProvider({ children }: { children: ReactNode }) {
           };
         });
 
+        const loadedCompetitions = data.competitions || [];
+        const loadedCompletions = data.completions || [];
+
         setKids(loadedKids);
         setTasks(data.tasks || []);
-        setCompletions(data.completions || []);
-        setCompetitions(data.competitions || []);
+        setCompletions(loadedCompletions);
+        setCompetitions(loadedCompetitions);
+
+        if (typeof data.activeCompetitionStartDate === "string") {
+          setActiveCompetitionStartDate(data.activeCompetitionStartDate);
+        } else if (loadedCompletions.length > 0) {
+          const earliestCompletionDate = loadedCompletions
+            .map((c: any) => c.date)
+            .filter(Boolean)
+            .sort()[0];
+          setActiveCompetitionStartDate(earliestCompletionDate || null);
+        } else {
+          setActiveCompetitionStartDate(null);
+        }
       }
     } catch (error) {
       console.error("Error loading data:", error);
@@ -143,6 +167,7 @@ export function KidProvider({ children }: { children: ReactNode }) {
       tasks?: Task[];
       completions?: Completion[];
       competitions?: Competition[];
+      activeCompetitionStartDate?: string | null;
     },
   ) => {
     try {
@@ -169,6 +194,9 @@ export function KidProvider({ children }: { children: ReactNode }) {
       }
       if (data.competitions) {
         cleanData.competitions = data.competitions;
+      }
+      if (data.activeCompetitionStartDate !== undefined) {
+        cleanData.activeCompetitionStartDate = data.activeCompetitionStartDate;
       }
 
       const docRef = doc(db, "parents", userId);
@@ -361,11 +389,30 @@ export function KidProvider({ children }: { children: ReactNode }) {
     }, 0);
   }
 
+  function getCompetitionStartDate() {
+    if (activeCompetitionStartDate) return activeCompetitionStartDate;
+    if (competitions.length > 0) {
+      const latestEndDate = competitions
+        .map((comp) => comp.endDate)
+        .filter(Boolean)
+        .sort()
+        .pop();
+      if (latestEndDate) return latestEndDate;
+    }
+    if (completions.length > 0) {
+      return completions
+        .map((c) => c.date)
+        .filter(Boolean)
+        .sort()[0];
+    }
+    return null;
+  }
+
   function getMonthlyStars(kidId: string) {
-    const ym = new Date().toISOString().slice(0, 7); // YYYY-MM
+    const competitionStartDate = getCompetitionStartDate();
     return completions.reduce((acc, c) => {
       if (c.kidId !== kidId) return acc;
-      if (!c.date.startsWith(ym)) return acc;
+      if (competitionStartDate && c.date < competitionStartDate) return acc;
       if (c.isBonus) return acc + (c.stars || 0);
       if (c.isPenalty) return acc - (c.stars || 0);
       const task = tasks.find((t) => t.id === c.taskId);
@@ -386,11 +433,15 @@ export function KidProvider({ children }: { children: ReactNode }) {
       .sort((a, b) => b.stars - a.stars)
       .map((ranking, index) => ({ ...ranking, rank: index + 1 }));
 
+    const today = new Date().toISOString().split("T")[0];
+    const competitionStartDate = getCompetitionStartDate() || today;
+    const competitionMonth = competitionStartDate.slice(0, 7);
+
     const competition: Competition = {
       id: Date.now().toString(),
-      month: currentMonth,
-      startDate: `${currentMonth}-01`,
-      endDate: new Date().toISOString().split("T")[0], // Today's date
+      month: competitionMonth,
+      startDate: competitionStartDate,
+      endDate: today,
       rankings: kidRankings,
       winner: kidRankings[0]
         ? { kidId: kidRankings[0].kidId, name: kidRankings[0].name }
@@ -400,18 +451,63 @@ export function KidProvider({ children }: { children: ReactNode }) {
         : undefined,
     };
 
-    setCompetitions((prev) => [...prev, competition]);
-    setCompletions([]);
-
     const uid = getActiveUserId();
-    if (uid) {
-      saveData(uid, {
-        competitions: [...competitions, competition],
-        completions: [],
-      });
-    }
+    setCompetitions((prev) => {
+      const updated = [...prev, competition];
+      if (uid) {
+        saveData(uid, {
+          competitions: updated,
+          completions: [],
+          activeCompetitionStartDate: today,
+        });
+      }
+      return updated;
+    });
+    setCompletions([]);
+    setActiveCompetitionStartDate(today);
   }
+  // const updateTask = (taskId: string, updatedTask: any) => {
+  //   setTasks((prevTasks) =>
+  //     prevTasks.map((task) =>
+  //       task.id === taskId
+  //         ? {
+  //           ...task,
+  //           ...updatedTask,
+  //         }
+  //         : task
+  //     )
+  //   );
+  // };
+  const updateTask = (taskId: string, updatedTask: any) => {
+    setTasks((prevTasks) => {
+      const updated = prevTasks.map((task) =>
+        task.id === taskId
+          ? {
+            ...task,
+            ...updatedTask,
+          }
+          : task
+      );
 
+      const uid = getActiveUserId();
+      if (uid) saveData(uid, { tasks: updated });
+
+      return updated;
+    });
+  };
+
+  const removeTask = (taskId: string) => {
+    setTasks((prevTasks) => {
+      const updated = prevTasks.filter(
+        (task) => task.id !== taskId
+      );
+
+      const uid = getActiveUserId();
+      if (uid) saveData(uid, { tasks: updated });
+
+      return updated;
+    });
+  };
   return (
     <KidContext.Provider
       value={{
@@ -419,6 +515,7 @@ export function KidProvider({ children }: { children: ReactNode }) {
         tasks,
         completions,
         competitions,
+        activeCompetitionStartDate,
         addKid,
         updateKid,
         removeKid,
@@ -432,6 +529,8 @@ export function KidProvider({ children }: { children: ReactNode }) {
         getMonthlyStars,
         hasCompletedToday,
         resetCompetition,
+        updateTask,
+        removeTask,
       }}
     >
       {children}

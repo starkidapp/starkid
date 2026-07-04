@@ -1,18 +1,25 @@
 import * as Application from "expo-application";
 import { Stack } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-
+import "../lib/i18n";
+import LoadingOverlay from "../components/LoadingOverlay";
+import NoInternetBanner from "../components/NoInternetBanner";
 import { auth, db } from "../lib/firebase/config";
 import { KidProvider } from "./context/KidContext";
+import { LoadingProvider, useLoading } from "./context/LoadingContext";
+import { LocaleProvider } from "./context/LocaleContext";
 import MandatoryUpdateScreen from "./screens/MandatoryUpdateScreen";
 import { isVersionLower } from "./utils/versionUtils";
 
+(Text as any).defaultProps = { ...(Text as any).defaultProps, style: { textTransform: 'capitalize', fontWeight: '400' } };
+
 export default function RootLayout() {
-  const [loading, setLoading] = useState(true);
+  const [initialized, setInitialized] = useState(false);
   const [forceUpdate, setForceUpdate] = useState(false);
   const [user, setUser] = useState<any>(null);
 
@@ -20,36 +27,74 @@ export default function RootLayout() {
     appStoreUrl: "",
     playStoreUrl: "",
   });
+  const [splashReady, setSplashReady] = useState(false);
+
+  function StartupManager({ onDone }: { onDone: () => void }) {
+    const { showLoading, hideLoading } = useLoading();
+
+    useEffect(() => {
+      let unsubscribe: any;
+
+      const startApp = async () => {
+        showLoading();
+        try {
+          const updateRequired = await checkAppVersion();
+
+          if (updateRequired) {
+            onDone();
+            return;
+          }
+
+          unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+            console.log("Auth user:", firebaseUser?.uid || null);
+            setUser(firebaseUser);
+            onDone();
+          });
+        } catch (error) {
+          console.log("Init error:", error);
+          onDone();
+        } finally {
+          hideLoading();
+        }
+      };
+
+      startApp();
+
+      return () => {
+        if (unsubscribe) unsubscribe();
+      };
+    }, [onDone, showLoading, hideLoading]);
+
+    return null;
+  }
 
   useEffect(() => {
-    let unsubscribe: any;
-
-    const startApp = async () => {
+    const prepareSplash = async () => {
       try {
-        const updateRequired = await checkAppVersion();
-
-        if (updateRequired) {
-          setLoading(false);
-          return;
-        }
-
-        unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-          console.log("Auth user:", firebaseUser?.uid || null);
-          setUser(firebaseUser);
-          setLoading(false);
-        });
+        await SplashScreen.preventAutoHideAsync();
       } catch (error) {
-        console.log("Init error:", error);
-        setLoading(false);
+        console.log("Splash prevent auto hide error:", error);
+      } finally {
+        setSplashReady(true);
       }
     };
 
-    startApp();
-
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
+    prepareSplash();
   }, []);
+
+  useEffect(() => {
+    if (initialized && splashReady) {
+      const t: any = setTimeout(() => {
+        SplashScreen.hideAsync().catch((error) => {
+          console.log("Splash hide error:", error);
+        });
+      }, 2000); // keep splash visible for 2s after init
+
+      return () => clearTimeout(t);
+    }
+  }, [initialized, splashReady]);
+
+  // initialization is handled in StartupManager (runs inside LoadingProvider)
 
   const checkAppVersion = async () => {
     try {
@@ -83,42 +128,51 @@ export default function RootLayout() {
     }
   };
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
-  }
-
-  if (forceUpdate) {
-    return (
-      <MandatoryUpdateScreen
-        appStoreUrl={storeLinks.appStoreUrl}
-        playStoreUrl={storeLinks.playStoreUrl}
-      />
-    );
-  }
-
   return (
     <SafeAreaProvider>
-      <KidProvider>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="index" />
-          {user ? (
-            <>
-              <Stack.Screen name="(tabs)" />
-              <Stack.Screen name="screens/ParentProfileScreen" />
-              <Stack.Screen name="modal" options={{ presentation: "modal" }} />
-            </>
-          ) : (
-            <>
-              <Stack.Screen name="screens/LoginScreen" />
-              <Stack.Screen name="screens/RegisterScreen" />
-            </>
-          )}
-        </Stack>
-      </KidProvider>
+      <LocaleProvider>
+        <LoadingProvider>
+          <KidProvider>
+            {!initialized && <StartupManager onDone={() => setInitialized(true)} />}
+
+            {!initialized ? (
+              // while StartupManager runs, the global LoadingOverlay is shown
+              <View style={styles.loadingContainer} />
+            ) : forceUpdate ? (
+              <MandatoryUpdateScreen
+                appStoreUrl={storeLinks.appStoreUrl}
+                playStoreUrl={storeLinks.playStoreUrl}
+              />
+            ) : (
+              <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="index" />
+                {user ? (
+                  <>
+                    <Stack.Screen name="(tabs)" />
+                    <Stack.Screen name="screens/ParentProfileScreen" />
+                    <Stack.Screen name="screens/ContactSupportScreen" />
+                    <Stack.Screen name="screens/FaqScreen" />
+                    <Stack.Screen name="screens/TermsAndConditionsScreen" />
+                    <Stack.Screen name="screens/LicensesScreen" />
+                    <Stack.Screen name="screens/AboutUsScreen" />
+                    <Stack.Screen name="screens/PrivacyPolicyScreen" />
+                    <Stack.Screen name="modal" options={{ presentation: "modal" }} />
+                  </>
+                ) : (
+                  <>
+                    <Stack.Screen name="screens/LoginScreen" />
+                    <Stack.Screen name="screens/RegisterScreen" />
+                    <Stack.Screen name="screens/ResetPasswordScreen" />
+                    <Stack.Screen name="screens/ResetPasswordConfirmationScreen" />
+                  </>
+                )}
+              </Stack>
+            )}
+          </KidProvider>
+          <LoadingOverlay />
+          <NoInternetBanner />
+        </LoadingProvider>
+      </LocaleProvider>
     </SafeAreaProvider>
   );
 }

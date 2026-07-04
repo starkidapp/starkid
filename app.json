@@ -4,29 +4,30 @@
     "slug": "star-kid",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/star-icon.png",
+    "splash": {
+      "image": "./assets/images/star-icon.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#87CEEB"
+    },
     "scheme": "starkid",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#EAF8FF"
-    },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.eanas.starkid"
+      "bundleIdentifier": "com.mi.starkid",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundColor": "#ffffff",
+        "foregroundImage": "./assets/images/star-icon.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.eanas.starkid"
+      "package": "com.mi.starkid"
     },
     "web": {
       "output": "static",
@@ -37,19 +38,25 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
-          "dark": {
-            "backgroundColor": "#000000"
-          }
+          "image": "./assets/images/star-icon.png",
+          "resizeMode": "cover",
+          "backgroundColor": "#87CEEB"
         }
       ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "f0f35dfe-7884-45f7-9d56-21bb14f8f635"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "owner": "eanas"
   }
 }

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1290px; height: 2796px;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    background: #F5F5FA;
+    overflow: hidden;
+  }
+
+  .top-band {
+    width: 100%; height: 420px;
+    background: linear-gradient(135deg, #6C63FF 0%, #8B83FF 100%);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: flex-end;
+    padding-bottom: 60px;
+    position: relative;
+  }
+  .top-band::after {
+    content: ''; position: absolute; bottom: -40px; left: 0; right: 0; height: 80px;
+    background: #F5F5FA; border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+  }
+
+  .status-bar-top {
+    position: absolute; top: 40px; left: 60px; right: 60px;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 36px; color: white; font-weight: 600;
+  }
+
+  .screen-title {
+    font-size: 64px; font-weight: 900; color: white; letter-spacing: -1px;
+  }
+  .screen-sub { font-size: 38px; color: rgba(255,255,255,0.8); margin-top: 12px; }
+
+  .content { padding: 80px 60px 0; }
+
+  .section-label {
+    font-size: 36px; font-weight: 700; color: #999; text-transform: uppercase;
+    letter-spacing: 2px; margin-bottom: 28px;
+  }
+
+  .task-card {
+    background: white; border-radius: 28px; padding: 48px 50px;
+    margin-bottom: 28px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+    display: flex; align-items: center; gap: 36px;
+  }
+  .task-accent { width: 12px; height: 100%; border-radius: 6px; min-height: 80px; flex-shrink: 0; }
+  .task-body { flex: 1; }
+  .task-title { font-size: 50px; font-weight: 800; color: #2D2A32; }
+  .task-sub { font-size: 36px; color: #888; margin-top: 10px; }
+  .task-stars {
+    background: #EDEAFF; border-radius: 50px; padding: 16px 28px;
+    font-size: 36px; font-weight: 800; color: #6C63FF; flex-shrink: 0;
+  }
+
+  .completed { opacity: 0.5; }
+  .check {
+    width: 72px; height: 72px; border-radius: 50%;
+    background: #06D6A0; display: flex; align-items: center; justify-content: center;
+    font-size: 40px; flex-shrink: 0;
+  }
+
+  .caption-band {
+    position: absolute; bottom: 0; left: 0; right: 0; height: 200px;
+    background: linear-gradient(to top, #F5F5FA, transparent);
+    display: flex; align-items: flex-end; justify-content: center;
+    padding-bottom: 60px;
+  }
+  .caption { font-size: 44px; font-weight: 800; color: #6C63FF; text-align: center; }
+  .caption span { color: #2D2A32; font-weight: 400; }
+</style>
+</head>
+<body>
+  <div class="top-band">
+    <div class="status-bar-top"><span>9:41</span><span>⚡</span></div>
+    <div class="screen-title">Today's Tasks</div>
+    <div class="screen-sub">Complete tasks to earn ⭐ stars</div>
+  </div>
+
+  <div class="content">
+    <div class="section-label">In Progress</div>
+
+    <div class="task-card">
+      <div class="task-accent" style="background:#6C63FF;"></div>
+      <div class="task-body">
+        <div class="task-title">Morning Routine</div>
+        <div class="task-sub">Brush teeth • Make bed • Get dressed</div>
+      </div>
+      <div class="task-stars">3 ⭐</div>
+    </div>
+
+    <div class="task-card">
+      <div class="task-accent" style="background:#FB8500;"></div>
+      <div class="task-body">
+        <div class="task-title">Do Homework</div>
+        <div class="task-sub">Math • Reading • Science</div>
+      </div>
+      <div class="task-stars">5 ⭐</div>
+    </div>
+
+    <div class="task-card">
+      <div class="task-accent" style="background:#06D6A0;"></div>
+      <div class="task-body">
+        <div class="task-title">Clean Room</div>
+        <div class="task-sub">Tidy toys • Vacuum floor</div>
+      </div>
+      <div class="task-stars">2 ⭐</div>
+    </div>
+
+    <div class="section-label" style="margin-top:40px;">Completed Today</div>
+
+    <div class="task-card completed">
+      <div class="check">✓</div>
+      <div class="task-body">
+        <div class="task-title">Read for 20 mins</div>
+        <div class="task-sub">Completed at 3:30 PM</div>
+      </div>
+      <div class="task-stars">2 ⭐</div>
+    </div>
+
+    <div class="task-card completed">
+      <div class="check">✓</div>
+      <div class="task-body">
+        <div class="task-title">Exercise</div>
+        <div class="task-sub">Completed at 4:00 PM</div>
+      </div>
+      <div class="task-stars">3 ⭐</div>
+    </div>
+  </div>
+
+  <div class="caption-band">
+    <div class="caption">Kids stay <span>motivated</span><br/>one star at a time ⭐</div>
+  </div>
+</body>
+</html>

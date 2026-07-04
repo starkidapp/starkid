@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1290px; height: 2796px;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    background: linear-gradient(180deg, #87CEEB 0%, #B8E4F7 35%, #FFF8E7 60%, #FFF8E7 100%);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .status-bar {
+    width: 100%; height: 100px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 30px 60px 0;
+    font-size: 36px; font-weight: 700; color: #2D2A32;
+  }
+
+  .cloud { position: absolute; background: white; opacity: 0.6; border-radius: 50px; }
+
+  .hero-image {
+    width: 900px; height: 900px;
+    object-fit: contain;
+    margin-top: 60px;
+    filter: drop-shadow(0 20px 60px rgba(108,99,255,0.2));
+  }
+
+  .text-block {
+    text-align: center;
+    margin-top: 60px;
+    padding: 0 80px;
+  }
+  .headline { font-size: 96px; font-weight: 900; color: #2D2A32; line-height: 1.05; }
+  .headline span { color: #6C63FF; }
+  .sub { font-size: 48px; color: #666; margin-top: 24px; font-weight: 400; line-height: 1.3; }
+
+  .badges {
+    display: flex; gap: 28px; margin-top: 80px; flex-wrap: wrap; justify-content: center;
+    padding: 0 60px;
+  }
+  .badge {
+    background: white; border-radius: 60px; padding: 28px 48px;
+    font-size: 42px; font-weight: 700; color: #2D2A32;
+    display: flex; align-items: center; gap: 18px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+  }
+
+  .caption {
+    position: absolute; bottom: 120px; left: 0; right: 0;
+    text-align: center;
+    font-size: 40px; color: #888; font-weight: 500; letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+  <div class="cloud" style="width:300px;height:140px;top:180px;left:-40px;"></div>
+  <div class="cloud" style="width:200px;height:100px;top:220px;left:80px;"></div>
+  <div class="cloud" style="width:260px;height:120px;top:200px;right:-30px;"></div>
+  <div class="cloud" style="width:180px;height:90px;top:240px;right:100px;"></div>
+
+  <div class="status-bar">
+    <span>9:41</span>
+    <span>⚡ 100%</span>
+  </div>
+
+  <img src="../../assets/images/star-icon.png" class="hero-image" />
+
+  <div class="text-block">
+    <div class="headline">Make Tasks<br/><span>Fun</span> for Kids</div>
+    <div class="sub">Assign tasks, track progress, and reward<br/>your kids with stars they love to earn</div>
+  </div>
+
+  <div class="badges">
+    <div class="badge">⭐ Earn Stars</div>
+    <div class="badge">✅ Complete Tasks</div>
+    <div class="badge">🏆 Win Rewards</div>
+    <div class="badge">📊 Track Progress</div>
+  </div>
+
+  <div class="caption">Available on iOS &amp; Android</div>
+</body>
+</html>

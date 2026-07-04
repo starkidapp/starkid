@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1290px; height: 2796px;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    background: #FFF8E7;
+    overflow: hidden;
+  }
+
+  .status-bar {
+    padding: 40px 60px 0;
+    display: flex; justify-content: space-between;
+    font-size: 36px; font-weight: 700; color: #2D2A32;
+  }
+
+  .header {
+    padding: 40px 60px 0;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .header-title { font-size: 72px; font-weight: 900; color: #2D2A32; }
+  .header-sub { font-size: 36px; color: #888; margin-top: 8px; }
+
+  .kids-row {
+    display: flex; gap: 28px;
+    padding: 40px 60px 0;
+    overflow: hidden;
+  }
+  .kid-card {
+    border-radius: 28px; padding: 36px 30px;
+    align-items: center; display: flex; flex-direction: column;
+    width: 230px; flex-shrink: 0;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  }
+  .kid-emoji-wrap {
+    width: 110px; height: 110px; border-radius: 30px;
+    background: rgba(255,255,255,0.7);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 60px;
+  }
+  .kid-name { font-size: 36px; font-weight: 800; color: #2D2A32; margin-top: 16px; }
+  .kid-stars {
+    background: rgba(255,255,255,0.8); border-radius: 50px; padding: 10px 22px;
+    font-size: 30px; font-weight: 700; color: #2D2A32; margin-top: 12px;
+  }
+
+  .summary {
+    margin: 60px 60px 0;
+    display: flex; gap: 28px;
+  }
+  .tile {
+    flex: 1; border-radius: 28px; padding: 48px 36px;
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+  }
+  .tile-icon { font-size: 56px; }
+  .tile-val { font-size: 64px; font-weight: 900; color: #2D2A32; }
+  .tile-label { font-size: 30px; color: #888; font-weight: 600; text-align: center; }
+
+  .tasks-section { margin: 60px 60px 0; }
+  .sec-title { font-size: 50px; font-weight: 900; color: #2D2A32; margin-bottom: 28px; }
+
+  .task-row {
+    background: white; border-radius: 24px; padding: 40px 44px;
+    display: flex; align-items: center; gap: 28px; margin-bottom: 20px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.04);
+  }
+  .bar { width: 10px; border-radius: 5px; min-height: 70px; }
+  .tr-body { flex: 1; }
+  .tr-title { font-size: 44px; font-weight: 800; color: #2D2A32; }
+  .tr-sub { font-size: 32px; color: #888; margin-top: 8px; }
+  .tr-star { font-size: 38px; font-weight: 800; color: #6C63FF; }
+
+  .caption-band {
+    position: absolute; bottom: 0; left: 0; right: 0; height: 220px;
+    background: linear-gradient(to top, #FFF8E7 60%, transparent);
+    display: flex; align-items: flex-end; justify-content: center;
+    padding-bottom: 60px;
+  }
+  .caption { font-size: 46px; font-weight: 800; color: #6C63FF; text-align: center; }
+</style>
+</head>
+<body>
+  <div class="status-bar"><span>9:41</span><span>⚡</span></div>
+
+  <div class="header">
+    <div>
+      <div class="header-title">Hello, Family! 👋</div>
+      <div class="header-sub">Pick a kid to see their tasks</div>
+    </div>
+  </div>
+
+  <div class="kids-row">
+    <div class="kid-card" style="background:#FFD6E7;">
+      <div class="kid-emoji-wrap">🦄</div>
+      <div class="kid-name">Layla</div>
+      <div class="kid-stars">24 ⭐</div>
+    </div>
+    <div class="kid-card" style="background:#C8F5E1;">
+      <div class="kid-emoji-wrap">🚀</div>
+      <div class="kid-name">Omar</div>
+      <div class="kid-stars">18 ⭐</div>
+    </div>
+    <div class="kid-card" style="background:#FFE9BF;">
+      <div class="kid-emoji-wrap">🐻</div>
+      <div class="kid-name">Sara</div>
+      <div class="kid-stars">31 ⭐</div>
+    </div>
+    <div class="kid-card" style="background:#D6E8FF;">
+      <div class="kid-emoji-wrap">🎨</div>
+      <div class="kid-name">Adam</div>
+      <div class="kid-stars">12 ⭐</div>
+    </div>
+  </div>
+
+  <div class="summary">
+    <div class="tile" style="background:#EDEAFF;">
+      <div class="tile-icon">👧</div>
+      <div class="tile-val">4</div>
+      <div class="tile-label">Kids</div>
+    </div>
+    <div class="tile" style="background:#FFF3DC;">
+      <div class="tile-icon">📋</div>
+      <div class="tile-val">8</div>
+      <div class="tile-label">Tasks Today</div>
+    </div>
+    <div class="tile" style="background:#E3FBF3;">
+      <div class="tile-icon">⭐</div>
+      <div class="tile-val">85</div>
+      <div class="tile-label">Stars This Month</div>
+    </div>
+  </div>
+
+  <div class="tasks-section">
+    <div class="sec-title">Active Tasks</div>
+    <div class="task-row">
+      <div class="bar" style="background:#6C63FF; height:70px;"></div>
+      <div class="tr-body">
+        <div class="tr-title">Morning Routine</div>
+        <div class="tr-sub">All 4 kids • Daily</div>
+      </div>
+      <div class="tr-star">3 ⭐</div>
+    </div>
+    <div class="task-row">
+      <div class="bar" style="background:#FB8500; height:70px;"></div>
+      <div class="tr-body">
+        <div class="tr-title">Do Homework</div>
+        <div class="tr-sub">School days • 5 subtasks</div>
+      </div>
+      <div class="tr-star">5 ⭐</div>
+    </div>
+    <div class="task-row">
+      <div class="bar" style="background:#06D6A0; height:70px;"></div>
+      <div class="tr-body">
+        <div class="tr-title">Clean Room</div>
+        <div class="tr-sub">Weekly • 3 subtasks</div>
+      </div>
+      <div class="tr-star">2 ⭐</div>
+    </div>
+  </div>
+
+  <div class="caption-band">
+    <div class="caption">All your kids in one place 🌟</div>
+  </div>
+</body>
+</html>

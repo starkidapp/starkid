@@ -1,32 +1,42 @@
 import { auth } from "@/lib/firebase/config";
 import { useRouter } from "expo-router";
 import { onAuthStateChanged } from "firebase/auth";
-import React, { useEffect } from "react";
-import { ActivityIndicator, StyleSheet } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useEffect } from "react";
+import { Dimensions, Image, StyleSheet, View } from "react-native";
 
-export default function IndexRedirect() {
+const { width, height } = Dimensions.get("screen");
+
+export default function SplashScreen() {
   const router = useRouter();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      if (firebaseUser) {
-        router.replace("/(tabs)");
-      } else {
-        router.replace("/screens/LoginScreen");
-      }
+      setTimeout(() => {
+        if (firebaseUser) {
+          router.replace("/(tabs)");
+        } else {
+          router.replace("/screens/LoginScreen");
+        }
+      }, 2200);
     });
-
     return unsubscribe;
   }, [router]);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ActivityIndicator size="large" />
-    </SafeAreaView>
+    <View style={styles.root}>
+      <Image
+        source={require("../assets/images/theme.png")}
+        style={{ width, height }}
+        resizeMode="cover"
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", alignItems: "center" },
+  root: {
+    width,
+    height,
+    overflow: "hidden",
+  },
 });

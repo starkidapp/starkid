@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1290px; height: 2796px;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    background: #F5F5FA;
+    overflow: hidden;
+  }
+
+  .status-bar { padding: 40px 60px 0; display: flex; justify-content: space-between; font-size: 36px; font-weight: 700; color: #2D2A32; }
+
+  .header-card {
+    margin: 30px 60px 0;
+    background: white; border-radius: 36px; padding: 50px 56px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+    display: flex; align-items: center; gap: 36px;
+  }
+  .parent-avatar {
+    width: 140px; height: 140px; border-radius: 40px; background: #EDEAFF;
+    display: flex; align-items: center; justify-content: center; font-size: 70px; flex-shrink: 0;
+  }
+  .header-info { flex: 1; }
+  .header-title { font-size: 58px; font-weight: 900; color: #2D2A32; }
+  .header-sub { font-size: 36px; color: #888; margin-top: 8px; }
+
+  .stats { margin: 40px 60px 0; display: flex; gap: 24px; }
+  .stat-tile {
+    flex: 1; border-radius: 28px; padding: 44px 36px;
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+  }
+  .stat-icon { font-size: 52px; }
+  .stat-val { font-size: 68px; font-weight: 900; color: #2D2A32; }
+  .stat-label { font-size: 28px; color: #888; font-weight: 600; text-align: center; }
+
+  .kids-section { margin: 44px 60px 0; }
+  .sec-title { font-size: 50px; font-weight: 900; color: #2D2A32; margin-bottom: 28px; }
+
+  .kid-row {
+    background: white; border-radius: 28px; padding: 44px 50px;
+    display: flex; align-items: center; gap: 32px; margin-bottom: 20px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+  }
+  .kid-av-bg {
+    width: 110px; height: 110px; border-radius: 30px;
+    display: flex; align-items: center; justify-content: center; font-size: 56px; flex-shrink: 0;
+  }
+  .kid-row-body { flex: 1; }
+  .kid-row-name { font-size: 50px; font-weight: 800; color: #2D2A32; }
+  .kid-row-sub { font-size: 32px; color: #888; margin-top: 8px; }
+  .kid-row-stars { font-size: 40px; font-weight: 900; color: #6C63FF; background: #EDEAFF; padding: 14px 26px; border-radius: 40px; }
+
+  .add-btn {
+    margin: 40px 60px 0;
+    background: linear-gradient(135deg,#6C63FF,#9B94FF);
+    border-radius: 28px; padding: 52px;
+    display: flex; align-items: center; justify-content: center; gap: 24px;
+    box-shadow: 0 8px 32px rgba(108,99,255,0.3);
+  }
+  .add-btn-text { font-size: 50px; font-weight: 800; color: white; }
+
+  .caption-band {
+    position: absolute; bottom: 0; left: 0; right: 0; height: 220px;
+    background: linear-gradient(to top, #F5F5FA 60%, transparent);
+    display: flex; align-items: flex-end; justify-content: center;
+    padding-bottom: 60px;
+  }
+  .caption { font-size: 46px; font-weight: 800; color: #6C63FF; text-align: center; }
+  .caption span { color: #2D2A32; font-weight: 400; }
+</style>
+</head>
+<body>
+  <div class="status-bar"><span>9:41</span><span>⚡</span></div>
+
+  <div class="header-card">
+    <div class="parent-avatar">👨‍👩‍👧</div>
+    <div class="header-info">
+      <div class="header-title">Parent Dashboard</div>
+      <div class="header-sub">Full control in your hands</div>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat-tile" style="background:#EDEAFF;">
+      <div class="stat-icon">👧</div>
+      <div class="stat-val">4</div>
+      <div class="stat-label">Kids</div>
+    </div>
+    <div class="stat-tile" style="background:#FFF3DC;">
+      <div class="stat-icon">📋</div>
+      <div class="stat-val">6</div>
+      <div class="stat-label">Tasks</div>
+    </div>
+    <div class="stat-tile" style="background:#E3FBF3;">
+      <div class="stat-icon">⭐</div>
+      <div class="stat-val">85</div>
+      <div class="stat-label">Stars</div>
+    </div>
+  </div>
+
+  <div class="kids-section">
+    <div class="sec-title">Manage Kids</div>
+
+    <div class="kid-row">
+      <div class="kid-av-bg" style="background:#FFD6E7;">🦄</div>
+      <div class="kid-row-body">
+        <div class="kid-row-name">Layla</div>
+        <div class="kid-row-sub">3 tasks pending today</div>
+      </div>
+      <div class="kid-row-stars">24 ⭐</div>
+    </div>
+
+    <div class="kid-row">
+      <div class="kid-av-bg" style="background:#C8F5E1;">🚀</div>
+      <div class="kid-row-body">
+        <div class="kid-row-name">Omar</div>
+        <div class="kid-row-sub">2 tasks completed</div>
+      </div>
+      <div class="kid-row-stars">18 ⭐</div>
+    </div>
+
+    <div class="kid-row">
+      <div class="kid-av-bg" style="background:#FFE9BF;">🐻</div>
+      <div class="kid-row-body">
+        <div class="kid-row-name">Sara</div>
+        <div class="kid-row-sub">All done for today! 🎉</div>
+      </div>
+      <div class="kid-row-stars">31 ⭐</div>
+    </div>
+  </div>
+
+  <div class="add-btn">
+    <div style="font-size:52px;">+</div>
+    <div class="add-btn-text">Add New Task</div>
+  </div>
+
+  <div class="caption-band">
+    <div class="caption">Parents stay <span>in control</span><br/>with a secure PIN dashboard 🔐</div>
+  </div>
+</body>
+</html>
