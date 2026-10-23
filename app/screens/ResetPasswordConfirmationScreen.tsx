@@ -1,9 +1,11 @@
+import { Button } from "@/components/ui";
 import { auth } from "@/lib/firebase/config";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { sendPasswordResetEmail } from "firebase/auth";
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Alert } from "react-native";
+import AuthScreen from "../components/AuthScreen";
 import { useLoading, useWithLoading } from "../context/LoadingContext";
+import { friendlyErrorMessage } from "../utils/errorUtils";
 
 export default function ResetPasswordConfirmationScreen() {
     const router = useRouter();
@@ -14,7 +16,7 @@ export default function ResetPasswordConfirmationScreen() {
 
     const resendEmail = async () => {
         if (!email) {
-            Alert.alert("Email missing", "Please return to the reset screen and enter your email.");
+            Alert.alert("Missing email", "Please go back and enter your email address.");
             return;
         }
 
@@ -24,101 +26,39 @@ export default function ResetPasswordConfirmationScreen() {
             });
 
             Alert.alert(
-                "Resent",
-                "We sent the password reset link again. Check your inbox and spam folder.",
+                "Email sent",
+                "We sent the link again. Can't find it? Check your Spam folder.",
             );
         } catch (error: any) {
             console.error("Resend error:", error);
             Alert.alert(
-                "Resend Failed",
-                error?.message || "Unable to resend password reset email.",
+                "Couldn't send the email",
+                friendlyErrorMessage(error, "Please try again in a few minutes."),
             );
         }
     };
 
     return (
-        <SafeAreaView style={styles.container}>
-            <View style={styles.card}>
-                <Text style={styles.title}>Check your email</Text>
-                <Text style={styles.subtitle}>
-                    We sent a password reset link to your email.
-                    Open it and follow the instructions to reset your password.
-                </Text>
-
-                <TouchableOpacity
-                    style={[styles.button, loading && styles.buttonDisabled]}
-                    onPress={resendEmail}
-                    disabled={loading}
-                >
-                    <Text style={styles.buttonText}>{loading ? "Resending..." : "Resend email"}</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={styles.secondaryButton}
+        <AuthScreen
+            title="Check your email 📬"
+            subtitle="We sent a password reset link to your inbox. Open it and follow the instructions to set a new password."
+            footer={
+                <Button
+                    title="Back to login"
+                    variant="ghost"
+                    size="sm"
+                    haptic={false}
                     onPress={() => router.replace("/screens/LoginScreen")}
-                >
-                    <Text style={styles.secondaryButtonText}>Back to Login</Text>
-                </TouchableOpacity>
-            </View>
-        </SafeAreaView>
+                />
+            }
+        >
+            <Button
+                title="Resend email"
+                onPress={resendEmail}
+                loading={loading}
+                fullWidth
+                playful
+            />
+        </AuthScreen>
     );
 }
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        justifyContent: "center",
-        padding: 24,
-        backgroundColor: "#FFF8E7",
-    },
-    card: {
-        backgroundColor: "#fff",
-        padding: 28,
-        borderRadius: 24,
-        shadowColor: "#000",
-        shadowOpacity: 0.08,
-        shadowRadius: 22,
-        elevation: 6,
-    },
-    title: {
-        fontSize: 28,
-        fontWeight: "900",
-        color: "#2D2A32",
-        marginBottom: 16,
-        textAlign: "center",
-    },
-    subtitle: {
-        fontSize: 16,
-        color: "#666",
-        lineHeight: 24,
-        textAlign: "center",
-        marginBottom: 28,
-    },
-    button: {
-        backgroundColor: "#6C63FF",
-        padding: 16,
-        borderRadius: 18,
-    },
-    buttonDisabled: {
-        opacity: 0.7,
-    },
-    secondaryButton: {
-        marginTop: 16,
-        padding: 16,
-        borderRadius: 18,
-        borderWidth: 1,
-        borderColor: "#6C63FF",
-    },
-    secondaryButtonText: {
-        color: "#6C63FF",
-        fontWeight: "900",
-        textAlign: "center",
-        fontSize: 17,
-    },
-    buttonText: {
-        color: "#fff",
-        fontWeight: "900",
-        textAlign: "center",
-        fontSize: 17,
-    },
-});

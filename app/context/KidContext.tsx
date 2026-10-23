@@ -35,6 +35,8 @@ export type Competition = {
   endDate: string;
   rankings: { kidId: string; name: string; stars: number; rank: number }[];
   winner?: { kidId: string; name: string };
+  /** Every kid tied for first place (older records only have `winner`). */
+  winners?: { kidId: string; name: string }[];
   secondPlace?: { kidId: string; name: string };
 };
 
@@ -43,12 +45,13 @@ type KidContextType = {
   tasks: Task[];
   completions: Completion[];
   competitions: Competition[];
-  activeCompetitionStartDate: string | null;
   addKid: (kid: Omit<Kid, "id">) => void;
   updateKid: (kid: Kid) => void;
   removeKid: (id: string) => void;
   getKidById: (id: string) => Kid | undefined;
   addTask: (task: { title: string; subtasks: NewSubtask[] }) => void;
+  updateTask: (task: Task) => void;
+  removeTask: (id: string) => void;
   toggleCompletion: (
     kidId: string,
     taskId: string,
@@ -56,7 +59,10 @@ type KidContextType = {
   ) => { added: boolean; message?: string };
   getKidStars: (kidId: string) => number;
   removeCompletion: (kidId: string, taskId: string, subtaskId: string) => void;
-  getMonthlyStars: (kidId: string) => number;
+  updateCompletion: (completionId: string, updates: Partial<Completion>) => Promise<void>;
+  getChallengeStars: (kidId: string) => number;
+  /** Ids of every kid tied for the most stars in the current challenge (empty if nobody has stars). */
+  getLeaderIds: () => string[];
   addBonus: (kidId: string, stars: number, reason?: string) => { id: string };
   addPenalty: (
     kidId: string,
@@ -69,14 +75,7 @@ type KidContextType = {
     taskId: string,
     subtaskId: string,
   ) => boolean;
-  updateTask: (
-    taskId: string,
-    updatedTask: { title: string; subtasks: Subtask[] }
-  ) => void;
-
-  removeTask: (taskId: string) => void;
   resetCompetition: () => void;
-
 };
 
 const KidContext = createContext<KidContextType | undefined>(undefined);
@@ -93,7 +92,6 @@ export function KidProvider({ children }: { children: ReactNode }) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [completions, setCompletions] = useState<Completion[]>([]);
   const [competitions, setCompetitions] = useState<Competition[]>([]);
-  const [activeCompetitionStartDate, setActiveCompetitionStartDate] = useState<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -135,25 +133,10 @@ export function KidProvider({ children }: { children: ReactNode }) {
           };
         });
 
-        const loadedCompetitions = data.competitions || [];
-        const loadedCompletions = data.completions || [];
-
         setKids(loadedKids);
         setTasks(data.tasks || []);
-        setCompletions(loadedCompletions);
-        setCompetitions(loadedCompetitions);
-
-        if (typeof data.activeCompetitionStartDate === "string") {
-          setActiveCompetitionStartDate(data.activeCompetitionStartDate);
-        } else if (loadedCompletions.length > 0) {
-          const earliestCompletionDate = loadedCompletions
-            .map((c: any) => c.date)
-            .filter(Boolean)
-            .sort()[0];
-          setActiveCompetitionStartDate(earliestCompletionDate || null);
-        } else {
-          setActiveCompetitionStartDate(null);
-        }
+        setCompletions(data.completions || []);
+        setCompetitions(data.competitions || []);
       }
     } catch (error) {
       console.error("Error loading data:", error);
@@ -167,7 +150,6 @@ export function KidProvider({ children }: { children: ReactNode }) {
       tasks?: Task[];
       completions?: Completion[];
       competitions?: Competition[];
-      activeCompetitionStartDate?: string | null;
     },
   ) => {
     try {
@@ -194,9 +176,6 @@ export function KidProvider({ children }: { children: ReactNode }) {
       }
       if (data.competitions) {
         cleanData.competitions = data.competitions;
-      }
-      if (data.activeCompetitionStartDate !== undefined) {
-        cleanData.activeCompetitionStartDate = data.activeCompetitionStartDate;
       }
 
       const docRef = doc(db, "parents", userId);
@@ -263,6 +242,30 @@ export function KidProvider({ children }: { children: ReactNode }) {
     });
   }
 
+  function updateTask(updatedTask: Task) {
+    setTasks((s) => {
+      const next = s.map((task) => (task.id === updatedTask.id ? updatedTask : task));
+      const uid = getActiveUserId();
+      if (uid) saveData(uid, { tasks: next });
+      return next;
+    });
+  }
+
+  function removeTask(id: string) {
+    setTasks((s) => {
+      const next = s.filter((task) => task.id !== id);
+      const uid = getActiveUserId();
+      if (uid) saveData(uid, { tasks: next });
+      return next;
+    });
+    setCompletions((s) => {
+      const next = s.filter((completion) => completion.taskId !== id);
+      const uid = getActiveUserId();
+      if (uid) saveData(uid, { completions: next });
+      return next;
+    });
+  }
+
   function hasCompletedToday(kidId: string, taskId: string, subtaskId: string) {
     const today = new Date().toISOString().slice(0, 10);
     return completions.some(
@@ -311,6 +314,17 @@ export function KidProvider({ children }: { children: ReactNode }) {
             c.subtaskId === subtaskId &&
             c.date === today
           ),
+      );
+      const uid = getActiveUserId();
+      if (uid) saveData(uid, { completions: updated });
+      return updated;
+    });
+  }
+
+  async function updateCompletion(completionId: string, updates: Partial<Completion>) {
+    setCompletions((s) => {
+      const updated = s.map((completion) =>
+        completion.id === completionId ? { ...completion, ...updates } : completion,
       );
       const uid = getActiveUserId();
       if (uid) saveData(uid, { completions: updated });
@@ -389,30 +403,19 @@ export function KidProvider({ children }: { children: ReactNode }) {
     }, 0);
   }
 
-  function getCompetitionStartDate() {
-    if (activeCompetitionStartDate) return activeCompetitionStartDate;
-    if (competitions.length > 0) {
-      const latestEndDate = competitions
-        .map((comp) => comp.endDate)
-        .filter(Boolean)
-        .sort()
-        .pop();
-      if (latestEndDate) return latestEndDate;
-    }
-    if (completions.length > 0) {
-      return completions
-        .map((c) => c.date)
-        .filter(Boolean)
-        .sort()[0];
-    }
-    return null;
+  /** ISO date (YYYY-MM-DD) the current challenge started, or null if none has ended yet. */
+  function getChallengeStart(): string | null {
+    if (competitions.length === 0) return null;
+    // The previous challenge's end date is when the current one began.
+    return competitions[competitions.length - 1].endDate || null;
   }
 
-  function getMonthlyStars(kidId: string) {
-    const competitionStartDate = getCompetitionStartDate();
+  /** Stars a kid has earned in the CURRENT challenge (everything since the last reset). */
+  function getChallengeStars(kidId: string) {
+    const start = getChallengeStart();
     return completions.reduce((acc, c) => {
       if (c.kidId !== kidId) return acc;
-      if (competitionStartDate && c.date < competitionStartDate) return acc;
+      if (start && c.date < start) return acc;
       if (c.isBonus) return acc + (c.stars || 0);
       if (c.isPenalty) return acc - (c.stars || 0);
       const task = tasks.find((t) => t.id === c.taskId);
@@ -421,93 +424,60 @@ export function KidProvider({ children }: { children: ReactNode }) {
     }, 0);
   }
 
+  function getLeaderIds() {
+    const stars = kids.map((kid) => ({ id: kid.id, stars: getChallengeStars(kid.id) }));
+    const top = Math.max(0, ...stars.map((k) => k.stars));
+    if (top <= 0) return [];
+    return stars.filter((k) => k.stars === top).map((k) => k.id);
+  }
+
   function resetCompetition() {
-    // Calculate rankings for the current month before resetting
-    const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+    const today = new Date().toISOString().split("T")[0];
+    const start =
+      getChallengeStart() ??
+      [...completions].map((c) => c.date).sort()[0] ??
+      today;
     const kidRankings = kids
       .map((kid) => ({
         kidId: kid.id,
         name: kid.name,
-        stars: getMonthlyStars(kid.id),
+        stars: getChallengeStars(kid.id),
       }))
-      .sort((a, b) => b.stars - a.stars)
-      .map((ranking, index) => ({ ...ranking, rank: index + 1 }));
-
-    const today = new Date().toISOString().split("T")[0];
-    const competitionStartDate = getCompetitionStartDate() || today;
-    const competitionMonth = competitionStartDate.slice(0, 7);
+      .sort((a, b) => b.stars - a.stars);
+    // Kids with the same stars share a rank, so a tie for first gives several winners.
+    const rankedKids = kidRankings.map((ranking) => ({
+      ...ranking,
+      rank: 1 + kidRankings.filter((other) => other.stars > ranking.stars).length,
+    }));
+    const winners = rankedKids
+      .filter((r) => r.rank === 1 && r.stars > 0)
+      .map((r) => ({ kidId: r.kidId, name: r.name }));
+    const runnerUp = rankedKids.find((r) => r.rank > 1);
 
     const competition: Competition = {
       id: Date.now().toString(),
-      month: competitionMonth,
-      startDate: competitionStartDate,
+      month: new Date().toISOString().slice(0, 7),
+      startDate: start,
       endDate: today,
-      rankings: kidRankings,
-      winner: kidRankings[0]
-        ? { kidId: kidRankings[0].kidId, name: kidRankings[0].name }
-        : undefined,
-      secondPlace: kidRankings[1]
-        ? { kidId: kidRankings[1].kidId, name: kidRankings[1].name }
-        : undefined,
+      rankings: rankedKids,
+      winners,
+      // Omit (not undefined): competitions are saved to Firestore as-is.
+      ...(winners[0] && { winner: winners[0] }),
+      ...(runnerUp && { secondPlace: { kidId: runnerUp.kidId, name: runnerUp.name } }),
     };
 
-    const uid = getActiveUserId();
-    setCompetitions((prev) => {
-      const updated = [...prev, competition];
-      if (uid) {
-        saveData(uid, {
-          competitions: updated,
-          completions: [],
-          activeCompetitionStartDate: today,
-        });
-      }
-      return updated;
-    });
+    setCompetitions((prev) => [...prev, competition]);
     setCompletions([]);
-    setActiveCompetitionStartDate(today);
+
+    const uid = getActiveUserId();
+    if (uid) {
+      saveData(uid, {
+        competitions: [...competitions, competition],
+        completions: [],
+      });
+    }
   }
-  // const updateTask = (taskId: string, updatedTask: any) => {
-  //   setTasks((prevTasks) =>
-  //     prevTasks.map((task) =>
-  //       task.id === taskId
-  //         ? {
-  //           ...task,
-  //           ...updatedTask,
-  //         }
-  //         : task
-  //     )
-  //   );
-  // };
-  const updateTask = (taskId: string, updatedTask: any) => {
-    setTasks((prevTasks) => {
-      const updated = prevTasks.map((task) =>
-        task.id === taskId
-          ? {
-            ...task,
-            ...updatedTask,
-          }
-          : task
-      );
 
-      const uid = getActiveUserId();
-      if (uid) saveData(uid, { tasks: updated });
-
-      return updated;
-    });
-  };
-
-  const removeTask = (taskId: string) => {
-    setTasks((prevTasks) => {
-      const updated = prevTasks.filter(
-        (task) => task.id !== taskId
-      );
-
-      const uid = getActiveUserId();
-      if (uid) saveData(uid, { tasks: updated });
-
-      return updated;
-    });
-  };
   return (
     <KidContext.Provider
       value={{
@@ -515,22 +485,23 @@ export function KidProvider({ children }: { children: ReactNode }) {
         tasks,
         completions,
         competitions,
-        activeCompetitionStartDate,
         addKid,
         updateKid,
         removeKid,
         getKidById,
         addTask,
+        updateTask,
+        removeTask,
         toggleCompletion,
         removeCompletion,
+        updateCompletion,
         addBonus,
         addPenalty,
         getKidStars,
-        getMonthlyStars,
+        getChallengeStars,
+        getLeaderIds,
         hasCompletedToday,
         resetCompetition,
-        updateTask,
-        removeTask,
       }}
     >
       {children}

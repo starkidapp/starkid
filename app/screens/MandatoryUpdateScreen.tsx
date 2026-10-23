@@ -1,15 +1,8 @@
 // src/screens/MandatoryUpdateScreen.tsx
 
-import React from "react";
-import {
-  Linking,
-  Platform,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import ScreenHeader from "../components/ScreenHeader";
+import { Linking, Platform, StyleSheet, View } from "react-native";
+import { AppText, Button, Screen } from "@/components/ui";
+import { spacing } from "@/constants/theme";
 
 type Props = {
   appStoreUrl: string;
@@ -26,58 +19,23 @@ export default function MandatoryUpdateScreen({
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScreenHeader title="Update Required" />
-      <Text style={styles.icon}>🚀</Text>
-
-      <Text style={styles.title}>Update Required</Text>
-
-      <Text style={styles.message}>
-        A new version of Star Kids is available. Please update the app to
-        continue using it.
-      </Text>
-
-      <TouchableOpacity style={styles.button} onPress={openStore}>
-        <Text style={styles.buttonText}>Update Now</Text>
-      </TouchableOpacity>
-    </SafeAreaView>
+    <Screen center>
+      <View style={styles.content}>
+        <AppText style={styles.icon}>🚀</AppText>
+        <AppText variant="title" align="center">
+          Update Required
+        </AppText>
+        <AppText variant="body" color="textMuted" align="center" style={styles.message}>
+          A new version of StarBo is available. Please update the app to keep using it.
+        </AppText>
+        <Button title="Update Now" onPress={openStore} playful size="lg" />
+      </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#FFF8E7",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
-  },
-  icon: {
-    fontSize: 80,
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 30,
-    fontWeight: "900",
-    color: "#2D2A32",
-    marginBottom: 12,
-  },
-  message: {
-    fontSize: 17,
-    color: "#555",
-    textAlign: "center",
-    lineHeight: 25,
-    marginBottom: 30,
-  },
-  button: {
-    backgroundColor: "#6C63FF",
-    paddingVertical: 16,
-    paddingHorizontal: 40,
-    borderRadius: 22,
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "800",
-  },
+  content: { alignItems: "center", gap: spacing.md },
+  icon: { fontSize: 72, marginBottom: spacing.sm },
+  message: { marginBottom: spacing.lg, maxWidth: 320 },
 });

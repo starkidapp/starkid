@@ -1,21 +1,17 @@
 // app/screens/RegisterScreen.tsx
 
+import { Button, TextField } from "@/components/ui";
 import { auth, db } from "@/lib/firebase/config";
+import { t } from "@/lib/i18n";
 import { useRouter } from "expo-router";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, sendEmailVerification, signOut } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
-import { alertNetworkError, checkInternet, isNetworkError } from "../utils/netUtils";
 import { useState } from "react";
-import {
-  Alert,
-  Image,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Alert } from "react-native";
+import AuthScreen from "../components/AuthScreen";
+import { useLoading } from "../context/LoadingContext";
+import { friendlyErrorMessage } from "../utils/errorUtils";
+import { alertNetworkError, checkInternet, isNetworkError } from "../utils/netUtils";
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -23,169 +19,186 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const { showLoading, hideLoading } = useLoading();
 
   const registerParent = async () => {
-    if (!parentName || !email || !password || !confirmPassword) {
-      Alert.alert("Required", "Please fill all fields");
-      console.log("Required", "Please fill all fields");
+    if (submitting) return;
+
+    const trimmedEmail = email.trim();
+    const trimmedName = parentName.trim();
+
+    if (!trimmedName) {
+      Alert.alert(t("register.missing_name_title"), t("register.missing_name_msg"));
+      return;
+    }
+
+    if (!trimmedEmail) {
+      Alert.alert(t("register.missing_email_title"), t("register.missing_email_msg"));
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      Alert.alert(t("register.invalid_email_title"), t("register.invalid_email_msg"));
+      return;
+    }
+
+    if (!password) {
+      Alert.alert(t("register.missing_password_title"), t("register.missing_password_msg"));
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert("Password Mismatch", "Passwords must match");
-      console.log("Password Mismatch", "Passwords must match");
+      Alert.alert(t("register.mismatch_title"), t("register.mismatch_msg"));
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert("Password", "Password should be at least 6 characters");
+      Alert.alert(t("register.too_short_title"), t("register.too_short_msg"));
       return;
     }
 
     if (!(await checkInternet())) return;
 
+    setSubmitting(true);
+    showLoading();
     try {
+      (global as any).isRegistering = true;
+
       const result = await createUserWithEmailAndPassword(
         auth,
-        email.trim(),
-        password.trim(),
+        trimmedEmail,
+        password.trim()
       );
-
+      console.log("✅✅✅✅✅", result);
       await setDoc(doc(db, "parents", result.user.uid), {
         parentId: result.user.uid,
-        parentName,
-        email: email.trim(),
+        parentName: trimmedName,
+        email: trimmedEmail,
+        emailVerified: false,
         createdAt: new Date(),
       });
 
-      router.replace("/(tabs)");
+      await sendEmailVerification(result.user);
+
+      await signOut(auth);
+      (global as any).isRegistering = false;
+
+      Alert.alert(
+        t("register.created_title"),
+        t("register.created_msg", { email: trimmedEmail }),
+        [
+          {
+            text: t("register.ok"),
+            onPress: () => router.replace("/screens/LoginScreen"),
+          },
+        ],
+        { cancelable: false }
+      );
     } catch (error: any) {
+      (global as any).isRegistering = false;
+
+      console.log("Registration error:", error);
+      if (error?.code === "auth/email-already-in-use") {
+        Alert.alert(
+          t("register.exists_title"),
+          t("register.exists_msg"),
+          [
+            { text: t("register.cancel"), style: "cancel" },
+            {
+              text: t("register.log_in"),
+              onPress: () => router.replace("/screens/LoginScreen"),
+            },
+          ]
+        );
+        return;
+      }
+
       if (isNetworkError(error)) {
         alertNetworkError();
         return;
       }
-      const msg =
-        error?.code === "auth/email-already-in-use"
-          ? "This email is already registered. Please log in or use a different email."
-          : error?.message || "Registration failed. Please try again.";
-      Alert.alert("Registration Failed", msg);
+
+      Alert.alert(
+        t("register.registration_failed"),
+        friendlyErrorMessage(error, t("register.registration_failed_msg"))
+      );
+    } finally {
+      hideLoading();
+      setSubmitting(false);
     }
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* <Text style={styles.icon}>🌟</Text> */}
-      <View style={styles.logoContainer}>
-        <Image
-          source={require("../../assets/images/star-icon.png")}
-          style={styles.logo}
-          resizeMode="contain"
-        /></View>
-      <Text style={styles.title}>Create Parent Account</Text>
-      <Text style={styles.subtitle}>
-        Register once to manage your kids and stars.
-      </Text>
-
-      <TextInput
-        placeholder="Parent name"
+    <AuthScreen
+      title={t("register.title")}
+      subtitle={t("register.subtitle")}
+      footer={
+        <Button
+          title={t("register.already_registered")}
+          variant="subtle"
+          size="sm"
+          fullWidth
+          haptic={false}
+          onPress={() => router.replace("/screens/LoginScreen")}
+        />
+      }
+    >
+      <TextField
+        label={t("register.parent_name")}
+        placeholder={t("register.parent_name_placeholder")}
         value={parentName}
         onChangeText={setParentName}
-        style={styles.input}
+        leftIcon="person-outline"
+        returnKeyType="next"
       />
 
-      <TextInput
-        placeholder="Email"
+      <TextField
+        label={t("register.email")}
+        placeholder={t("register.email_placeholder")}
         value={email}
-        onChangeText={(t) => setEmail(t.replace(/\s/g, ''))}
+        onChangeText={(v) => setEmail(v.replace(/\s/g, ""))}
         autoCapitalize="none"
         keyboardType="email-address"
-        style={styles.input}
+        leftIcon="mail-outline"
+        returnKeyType="next"
       />
 
-      <TextInput
-        placeholder="Parent password"
+      <TextField
+        label={t("register.password")}
+        placeholder={t("register.password_placeholder")}
         value={password}
-        onChangeText={(t) => setPassword(t.replace(/\s/g, ''))}
-        secureTextEntry
-        style={styles.input}
+        onChangeText={(v) => setPassword(v.replace(/\s/g, ""))}
+        secureToggle
+        leftIcon="lock-closed-outline"
+        helper={t("register.password_helper")}
+        returnKeyType="next"
       />
 
-      <TextInput
-        placeholder="Confirm password"
+      <TextField
+        label={t("register.confirm_password")}
+        placeholder={t("register.confirm_password_placeholder")}
         value={confirmPassword}
-        onChangeText={(t) => setConfirmPassword(t.replace(/\s/g, ''))}
-        secureTextEntry
-        style={styles.input}
+        onChangeText={(v) => setConfirmPassword(v.replace(/\s/g, ""))}
+        secureToggle
+        leftIcon="lock-closed-outline"
+        returnKeyType="go"
+        onSubmitEditing={registerParent}
+        error={
+          confirmPassword.length > 0 && confirmPassword !== password
+            ? t("register.passwords_no_match")
+            : undefined
+        }
       />
 
-      <TouchableOpacity style={styles.button} onPress={registerParent}>
-        <Text style={styles.buttonText}>Register</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity onPress={() => router.replace("/screens/LoginScreen")}>
-        <Text style={styles.link}>Already registered? Login</Text>
-      </TouchableOpacity>
-    </SafeAreaView>
+      <Button
+        title={t("register.register")}
+        onPress={registerParent}
+        loading={submitting}
+        fullWidth
+        playful
+        style={{ marginTop: 4 }}
+      />
+    </AuthScreen>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 24,
-    justifyContent: "center",
-    backgroundColor: "#FFF8E7",
-  },
-  icon: {
-    fontSize: 70,
-    textAlign: "center",
-  },
-  title: {
-    fontSize: 30,
-    fontWeight: "900",
-    textAlign: "center",
-    color: "#2D2A32",
-    marginTop: 12,
-  },
-  subtitle: {
-    textAlign: "center",
-    color: "#666",
-    marginVertical: 18,
-    fontSize: 15,
-  },
-  input: {
-    backgroundColor: "#fff",
-    padding: 16,
-    borderRadius: 18,
-    marginBottom: 14,
-    fontSize: 16,
-  },
-  button: {
-    backgroundColor: "#6C63FF",
-    padding: 17,
-    borderRadius: 20,
-    marginTop: 6,
-  },
-  buttonText: {
-    color: "#fff",
-    fontWeight: "900",
-    fontSize: 17,
-    textAlign: "center",
-  },
-  link: {
-    textAlign: "center",
-    marginTop: 18,
-    color: "#6C63FF",
-    fontWeight: "800",
-  },
-  logoContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 15,
-  },
-
-  logo: {
-    width: 130,
-    height: 130,
-  },
-});

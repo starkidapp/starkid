@@ -1,51 +1,92 @@
 {
   "login": {
     "title": "تسجيل دخول ولي الأمر",
-    "subtitle": "أدخل كلمة المرور المسجلة للمتابعة.",
+    "subtitle": "سجّل الدخول ببريدك الإلكتروني وكلمة المرور المسجلين للمتابعة.",
     "email": "البريد الإلكتروني",
+    "email_placeholder": "you@example.com",
     "password": "كلمة المرور",
+    "password_placeholder": "كلمة المرور الخاصة بك",
     "login": "تسجيل الدخول",
-    "register_link": "مستخدم جديد؟ سجل هنا",
-    "required_title": "مطلوب",
-    "required_msg": "يرجى إدخال البريد الإلكتروني وكلمة المرور",
-    "login_failed_title": "فشل تسجيل الدخول",
-    "login_failed_msg": "البريد الإلكتروني أو كلمة المرور غير صحيحة"
+    "forgot_password": "نسيت كلمة المرور؟",
+    "register_link": "جديد هنا؟ أنشئ حسابًا",
+    "missing_title": "بيانات ناقصة",
+    "missing_msg": "يرجى إدخال البريد الإلكتروني وكلمة المرور.",
+    "confirm_email_title": "يرجى تأكيد بريدك الإلكتروني",
+    "confirm_email_msg": "أرسلنا إليك رسالة تحتوي على رابط. اضغط على الرابط لتأكيد بريدك الإلكتروني، ثم سجّل الدخول هنا.\n\nلا تجده؟ تحقق من مجلد البريد غير المرغوب فيه.",
+    "send_again": "إرسال الرابط مرة أخرى",
+    "ok": "حسنًا",
+    "email_sent_title": "تم إرسال الرسالة",
+    "email_sent_msg": "أرسلنا رابطًا جديدًا إلى {{email}}.\n\nلا تجده؟ تحقق من مجلد البريد غير المرغوب فيه.",
+    "wait_title": "يرجى الانتظار",
+    "resend_wait_msg": "طلبت الرابط عدة مرات. يرجى الانتظار بضع دقائق ثم المحاولة مرة أخرى.",
+    "send_failed_title": "تعذّر إرسال الرسالة",
+    "send_failed_msg": "يرجى المحاولة مرة أخرى بعد بضع دقائق.",
+    "not_found_title": "الحساب غير موجود",
+    "not_found_msg": "لم نجد حسابًا بهذا البريد الإلكتروني. يرجى إنشاء حساب أولاً.",
+    "wrong_title": "البريد الإلكتروني أو كلمة المرور غير صحيحة",
+    "wrong_msg": "البريد الإلكتروني أو كلمة المرور غير صحيحة. يرجى التحقق والمحاولة مرة أخرى.",
+    "invalid_email_title": "بريد إلكتروني غير صالح",
+    "invalid_email_msg": "يرجى إدخال بريد إلكتروني صالح.",
+    "too_many_msg": "محاولات كثيرة جدًا. يرجى الانتظار بضع دقائق ثم المحاولة مرة أخرى.",
+    "login_failed_title": "تعذّر تسجيل الدخول",
+    "login_failed_msg": "تعذّر تسجيل دخولك. يرجى المحاولة مرة أخرى."
   },
   "register": {
     "title": "إنشاء حساب ولي الأمر",
-    "subtitle": "سجل مرة لإدارة أطفالك والنجوم.",
+    "subtitle": "سجّل مرة واحدة لإدارة أطفالك ومهامهم ونجومهم.",
     "parent_name": "اسم ولي الأمر",
+    "parent_name_placeholder": "مثال: أحمد محمد",
     "email": "البريد الإلكتروني",
-    "password": "كلمة مرور ولي الأمر",
+    "email_placeholder": "you@example.com",
+    "password": "كلمة المرور",
+    "password_placeholder": "6 أحرف على الأقل",
+    "password_helper": "6 أحرف على الأقل",
     "confirm_password": "تأكيد كلمة المرور",
-    "register": "تسجيل",
-    "already_registered": "مسجل بالفعل؟ تسجيل الدخول",
-    "required_title": "مطلوب",
-    "required_msg": "يرجى ملء جميع الحقول",
-    "password_mismatch_title": "عدم تطابق كلمة المرور",
-    "password_mismatch_msg": "يجب أن تتطابق كلمات المرور",
-    "password_length_title": "كلمة المرور",
-    "password_length_msg": "يجب أن تكون كلمة المرور 6 أحرف على الأقل",
-    "registration_failed": "فشل التسجيل"
+    "confirm_password_placeholder": "أعد إدخال كلمة المرور",
+    "passwords_no_match": "كلمتا المرور غير متطابقتين",
+    "register": "إنشاء حساب",
+    "already_registered": "لديك حساب؟ سجّل الدخول",
+    "missing_name_title": "الاسم مطلوب",
+    "missing_name_msg": "يرجى إدخال اسمك.",
+    "missing_email_title": "البريد الإلكتروني مطلوب",
+    "missing_email_msg": "يرجى إدخال بريدك الإلكتروني.",
+    "invalid_email_title": "بريد إلكتروني غير صالح",
+    "invalid_email_msg": "يرجى إدخال بريد إلكتروني صالح.",
+    "missing_password_title": "كلمة المرور مطلوبة",
+    "missing_password_msg": "يرجى إدخال كلمة مرور.",
+    "mismatch_title": "كلمتا المرور غير متطابقتين",
+    "mismatch_msg": "يرجى كتابة كلمة المرور نفسها في الحقلين.",
+    "too_short_title": "كلمة المرور قصيرة جدًا",
+    "too_short_msg": "يرجى استخدام 6 أحرف على الأقل.",
+    "created_title": "تم إنشاء الحساب 🎉",
+    "created_msg": "أرسلنا رسالة إلى {{email}}.\n\nاضغط على الرابط في الرسالة لتأكيد بريدك، ثم عد وسجّل الدخول.\n\nلا تجده؟ تحقق من مجلد البريد غير المرغوب فيه.",
+    "ok": "حسنًا",
+    "exists_title": "لديك حساب بالفعل",
+    "exists_msg": "هذا البريد الإلكتروني مسجّل بالفعل. هل تريد تسجيل الدخول بدلاً من ذلك؟",
+    "cancel": "إلغاء",
+    "log_in": "تسجيل الدخول",
+    "registration_failed": "تعذّر إنشاء الحساب",
+    "registration_failed_msg": "حدث خطأ ما. يرجى المحاولة مرة أخرى."
   },
   "home": {
-    "welcome": "مرحبًا، {{name}}! 👋",
-    "title": "🌟 أطفال النجوم 🌟",
+    "welcome": "مرحبًا، {{name}} 👋",
     "kids_area": "منطقة الأطفال",
+    "kids_area_subtitle": "مهام ممتعة ومكافآت بانتظارك!",
     "parent_area": "منطقة ولي الأمر",
-    "no_kids_title": "لم تتم إضافة أطفال",
-    "no_kids_msg": "يرجى إضافة الأطفال أولاً من ملف ولي الأمر.",
-    "logout_title": "تسجيل الخروج",
+    "parent_area_subtitle": "إدارة المهام والإعدادات",
+    "no_kids_title": "لا يوجد أطفال بعد",
+    "no_kids_msg": "يرجى فتح منطقة ولي الأمر وإضافة أطفالك أولاً.",
+    "logout_title": "تسجيل الخروج؟",
     "logout_msg": "هل أنت متأكد أنك تريد تسجيل الخروج؟",
     "cancel": "إلغاء",
     "logout_confirm": "تسجيل الخروج",
-    "error_logout": "خطأ",
-    "error_logout_msg": "تعذر تسجيل الخروج. حاول مرة أخرى."
+    "error_logout": "تعذّر تسجيل الخروج",
+    "error_logout_msg": "يرجى المحاولة مرة أخرى."
   },
   "kidDetails": {
     "title": "تفاصيل الطفل",
     "not_found": "لم يتم العثور على الطفل",
-    "this_month": "هذا الشهر",
+    "this_month": "هذا التحدّي",
     "stars_earned": "النجوم المكتسبة:",
     "completions": "الإتمام:",
     "bonuses": "المكافآت:",
@@ -120,25 +161,25 @@
     "cancel": "إلغاء"
   },
   "parentDashboard_actions": {
-      "give": "منح"
-    },
-    "parentDashboard_modals": {
-      "penalty_title": "تطبيق عقوبة / تنبيه",
-      "attach_to_task_optional": "إرفاق بالمهمة (اختياري)",
-      "give_bonus_title": "منح مكافأة"
-    },
-    "parentDashboard_placeholders": {
-      "parent_account_password": "كلمة مرور حساب ولي الأمر",
-      "confirm_4_digit_pin": "تأكيد رمز 4 أرقام",
-      "new_4_digit_pin": "رمز 4 أرقام جديد",
-      "confirm_pin": "تأكيد الرمز",
-      "points_to_deduct": "النقاط المراد خصمها",
-      "reason_optional": "السبب (اختياري)",
-      "stars": "النجوم",
-      "task_title": "عنوان المهمة",
-      "subtask": "مهمة فرعية",
-      "star_icon": "⭐"
-    },
+    "give": "منح"
+  },
+  "parentDashboard_modals": {
+    "penalty_title": "تطبيق عقوبة / تنبيه",
+    "attach_to_task_optional": "إرفاق بالمهمة (اختياري)",
+    "give_bonus_title": "منح مكافأة"
+  },
+  "parentDashboard_placeholders": {
+    "parent_account_password": "كلمة مرور حساب ولي الأمر",
+    "confirm_4_digit_pin": "تأكيد رمز 4 أرقام",
+    "new_4_digit_pin": "رمز 4 أرقام جديد",
+    "confirm_pin": "تأكيد الرمز",
+    "points_to_deduct": "النقاط المراد خصمها",
+    "reason_optional": "السبب (اختياري)",
+    "stars": "النجوم",
+    "task_title": "عنوان المهمة",
+    "subtask": "مهمة فرعية",
+    "star_icon": "⭐"
+  },
   "parentProfile": {
     "title": "ملف ولي الأمر",
     "validation_name": "يرجى إدخال اسم ولي الأمر.",
@@ -155,7 +196,7 @@
     "password_updated": "تم تحديث كلمة المرور بنجاح.",
     "pin_exact_4": "يجب أن يكون الرمز المكون من 4 أرقام.",
     "kid_pins_saved": "تم تحديث رموز الأطفال.",
-    "no_changes": "لا توجد تغييرات في رموز الأطفال.",
+    "no_changes": "لا توجد تغييرات في رموز الأطفال."
   },
   "parentProfile_ui": {
     "enter_parent_name_placeholder": "أدخل اسم ولي الأمر",
@@ -173,19 +214,19 @@
     "saving_dot": "جارٍ الحفظ...",
     "pin_placeholder": "الرمز"
   },
-    "parentProfile_extra": {
-      "kid_pin_hint": "يمكن تحديث رمز الطفل هنا.",
-      "save_kid_pins": "حفظ رموز الأطفال",
-      "language": "اللغة",
-      "english": "English",
-      "arabic": "العربية",
-      "sign_out": "تسجيل الخروج"
-    },
-      "mandatoryUpdate": {
-        "title": "يتطلب التحديث",
-        "message": "يتوفر إصدار جديد من تطبيق أطفال النجوم. يرجى تحديث التطبيق للاستمرار في استخدامه.",
-        "update_now": "تحديث الآن"
-      },
+  "parentProfile_extra": {
+    "kid_pin_hint": "يمكن تحديث رمز الطفل هنا.",
+    "save_kid_pins": "حفظ رموز الأطفال",
+    "language": "اللغة",
+    "english": "English",
+    "arabic": "العربية",
+    "sign_out": "تسجيل الخروج"
+  },
+  "mandatoryUpdate": {
+    "title": "يتطلب التحديث",
+    "message": "يتوفر إصدار جديد من تطبيق أطفال النجوم. يرجى تحديث التطبيق للاستمرار في استخدامه.",
+    "update_now": "تحديث الآن"
+  },
   "leaderboard": {
     "title": "🏆 لوحة المتصدرين"
   }

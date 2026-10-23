@@ -1,102 +1,155 @@
+import {
+  Nunito_300Light,
+  Nunito_400Regular,
+  Nunito_500Medium,
+  Nunito_600SemiBold,
+  Nunito_700Bold,
+  Nunito_800ExtraBold,
+  useFonts,
+} from "@expo-google-fonts/nunito";
 import * as Application from "expo-application";
 import { Stack } from "expo-router";
+import { onAuthStateChanged, signOut, User } from "firebase/auth";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { useCallback, useEffect, useState } from "react";
 import * as SplashScreen from "expo-splash-screen";
-import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
-import { useEffect, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import * as ScreenOrientation from "expo-screen-orientation";
+import { Dimensions } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import "../lib/i18n";
 import LoadingOverlay from "../components/LoadingOverlay";
 import NoInternetBanner from "../components/NoInternetBanner";
+import ThemeSplash, { hideNativeSplash } from "../components/ThemeSplash";
 import { auth, db } from "../lib/firebase/config";
+import { loadSavedLocale } from "../lib/i18n";
 import { KidProvider } from "./context/KidContext";
-import { LoadingProvider, useLoading } from "./context/LoadingContext";
+import { LoadingProvider } from "./context/LoadingContext";
 import { LocaleProvider } from "./context/LocaleContext";
 import MandatoryUpdateScreen from "./screens/MandatoryUpdateScreen";
 import { isVersionLower } from "./utils/versionUtils";
 
-(Text as any).defaultProps = { ...(Text as any).defaultProps, style: { textTransform: 'capitalize', fontWeight: '400' } };
+// Keep the native launch screen until ThemeSplash has drawn the full-screen
+// theme (it hides it then), instead of Expo Router hiding it on its own schedule.
+SplashScreen.preventAutoHideAsync().catch(() => {});
+SplashScreen.setOptions({ fade: true, duration: 250 });
+
+// Keep phones in portrait, but let tablets and foldables rotate freely. This is
+// done at runtime (not via app.json "orientation") because Android 16 ignores
+// manifest orientation locks on large screens and Play flags them.
+const { width, height } = Dimensions.get("screen");
+if (Math.min(width, height) < 600) {
+  ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
+}
+
+// Defined at module scope so it is not remounted on every RootLayout render
+// (which re-ran the whole startup sequence and re-subscribed the auth listener).
+function StartupManager({
+  onDone,
+  onUser,
+  checkAppVersion,
+}: {
+  onDone: () => void;
+  onUser: (user: User | null) => void;
+  checkAppVersion: () => Promise<boolean>;
+}) {
+  useEffect(() => {
+    let unsubscribe: any;
+
+    const startApp = async () => {
+      try {
+        const updateRequired = await checkAppVersion();
+
+        if (updateRequired) {
+          onDone();
+          return;
+        }
+
+        unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+          if (!firebaseUser) {
+            onUser(null);
+            onDone();
+            return;
+          }
+
+          try {
+            const parentRef = doc(db, "parents", firebaseUser.uid);
+            const parentSnap = await getDoc(parentRef);
+            const isVerifiedByFlag = parentSnap.exists() && parentSnap.data()?.emailVerified === true;
+            const isVerifiedByAuth = firebaseUser.emailVerified === true;
+
+            // if (!isVerifiedByFlag && !isVerifiedByAuth) {
+            //   console.log("Auth user email not verified; signing out..");
+            //   await signOut(auth);
+            //   onUser(null);
+            //   onDone();
+            //   return;
+            // }
+            if (!isVerifiedByFlag && !isVerifiedByAuth) {
+              if ((global as any).isRegistering) {
+                console.log("Registration in progress, skipping unverified sign out");
+                onDone();
+                return;
+              }
+
+              console.log("Auth user email not verified; signing out..");
+              await signOut(auth);
+              onUser(null);
+              onDone();
+              return;
+            }
+
+            if (isVerifiedByAuth && !isVerifiedByFlag) {
+              await setDoc(parentRef, { emailVerified: true }, { merge: true });
+            }
+          } catch (error) {
+            console.log("Verification check error:", error);
+          }
+
+          console.log("Auth user:", firebaseUser?.uid || null);
+          onUser(firebaseUser);
+          onDone();
+        });
+      } catch (error) {
+        console.log("Init error:", error);
+        onDone();
+      }
+    };
+
+    startApp();
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [onDone, onUser, checkAppVersion]);
+
+  return null;
+}
 
 export default function RootLayout() {
   const [initialized, setInitialized] = useState(false);
   const [forceUpdate, setForceUpdate] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [localeReady, setLocaleReady] = useState(false);
+
+  // Apply the saved language before any screen renders its strings.
+  useEffect(() => {
+    loadSavedLocale().finally(() => setLocaleReady(true));
+  }, []);
+
+  const [fontsLoaded] = useFonts({
+    Nunito_300Light,
+    Nunito_400Regular,
+    Nunito_500Medium,
+    Nunito_600SemiBold,
+    Nunito_700Bold,
+    Nunito_800ExtraBold,
+  });
 
   const [storeLinks, setStoreLinks] = useState({
     appStoreUrl: "",
     playStoreUrl: "",
   });
-  const [splashReady, setSplashReady] = useState(false);
 
-  function StartupManager({ onDone }: { onDone: () => void }) {
-    const { showLoading, hideLoading } = useLoading();
-
-    useEffect(() => {
-      let unsubscribe: any;
-
-      const startApp = async () => {
-        showLoading();
-        try {
-          const updateRequired = await checkAppVersion();
-
-          if (updateRequired) {
-            onDone();
-            return;
-          }
-
-          unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-            console.log("Auth user:", firebaseUser?.uid || null);
-            setUser(firebaseUser);
-            onDone();
-          });
-        } catch (error) {
-          console.log("Init error:", error);
-          onDone();
-        } finally {
-          hideLoading();
-        }
-      };
-
-      startApp();
-
-      return () => {
-        if (unsubscribe) unsubscribe();
-      };
-    }, [onDone, showLoading, hideLoading]);
-
-    return null;
-  }
-
-  useEffect(() => {
-    const prepareSplash = async () => {
-      try {
-        await SplashScreen.preventAutoHideAsync();
-      } catch (error) {
-        console.log("Splash prevent auto hide error:", error);
-      } finally {
-        setSplashReady(true);
-      }
-    };
-
-    prepareSplash();
-  }, []);
-
-  useEffect(() => {
-    if (initialized && splashReady) {
-      const t: any = setTimeout(() => {
-        SplashScreen.hideAsync().catch((error) => {
-          console.log("Splash hide error:", error);
-        });
-      }, 2000); // keep splash visible for 2s after init
-
-      return () => clearTimeout(t);
-    }
-  }, [initialized, splashReady]);
-
-  // initialization is handled in StartupManager (runs inside LoadingProvider)
-
-  const checkAppVersion = async () => {
+  const checkAppVersion = useCallback(async () => {
     try {
       const currentVersion = Application.nativeApplicationVersion || "1.0.0";
 
@@ -126,18 +179,30 @@ export default function RootLayout() {
       console.log("Version check error:", error);
       return false;
     }
-  };
+  }, []);
+  const finishStartup = useCallback(() => setInitialized(true), []);
+
+  // Fallback in case the theme image never reports loading.
+  useEffect(() => {
+    if (initialized && fontsLoaded && localeReady) hideNativeSplash();
+  }, [initialized, fontsLoaded, localeReady]);
 
   return (
     <SafeAreaProvider>
       <LocaleProvider>
         <LoadingProvider>
           <KidProvider>
-            {!initialized && <StartupManager onDone={() => setInitialized(true)} />}
+            {!initialized && (
+              <StartupManager
+                onDone={finishStartup}
+                onUser={setUser}
+                checkAppVersion={checkAppVersion}
+              />
+            )}
 
-            {!initialized ? (
-              // while StartupManager runs, the global LoadingOverlay is shown
-              <View style={styles.loadingContainer} />
+            {!initialized || !fontsLoaded || !localeReady ? (
+              // while StartupManager / fonts load, show the full-screen theme
+              <ThemeSplash />
             ) : forceUpdate ? (
               <MandatoryUpdateScreen
                 appStoreUrl={storeLinks.appStoreUrl}
@@ -156,7 +221,6 @@ export default function RootLayout() {
                     <Stack.Screen name="screens/LicensesScreen" />
                     <Stack.Screen name="screens/AboutUsScreen" />
                     <Stack.Screen name="screens/PrivacyPolicyScreen" />
-                    <Stack.Screen name="modal" options={{ presentation: "modal" }} />
                   </>
                 ) : (
                   <>
@@ -176,7 +240,3 @@ export default function RootLayout() {
     </SafeAreaProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  loadingContainer: { flex: 1, justifyContent: "center" },
-});

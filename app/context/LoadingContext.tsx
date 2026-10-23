@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
 
 type LoadingContextType = {
     loading: boolean;
@@ -13,11 +13,17 @@ const LoadingContext = createContext<LoadingContextType | undefined>(
 export const LoadingProvider = ({ children }: { children: React.ReactNode }) => {
     const [loading, setLoading] = useState(false);
 
-    const showLoading = () => setLoading(true);
-    const hideLoading = () => setLoading(false);
+    // Stable identities: screens list these in effect deps, so new functions
+    // on every render would re-run those effects (and re-subscribe auth listeners).
+    const showLoading = useCallback(() => setLoading(true), []);
+    const hideLoading = useCallback(() => setLoading(false), []);
+    const value = useMemo(
+        () => ({ loading, showLoading, hideLoading }),
+        [loading, showLoading, hideLoading],
+    );
 
     return (
-        <LoadingContext.Provider value={{ loading, showLoading, hideLoading }}>
+        <LoadingContext.Provider value={value}>
             {children}
         </LoadingContext.Provider>
     );
@@ -34,12 +40,15 @@ export default LoadingContext;
 export const useWithLoading = () => {
     const { showLoading, hideLoading } = useLoading();
 
-    return async <T,>(fn: () => Promise<T>): Promise<T> => {
-        showLoading();
-        try {
-            return await fn();
-        } finally {
-            hideLoading();
-        }
-    };
+    return useCallback(
+        async <T,>(fn: () => Promise<T>): Promise<T> => {
+            showLoading();
+            try {
+                return await fn();
+            } finally {
+                hideLoading();
+            }
+        },
+        [showLoading, hideLoading],
+    );
 };

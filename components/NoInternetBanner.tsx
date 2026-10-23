@@ -1,6 +1,8 @@
 import NetInfo from "@react-native-community/netinfo";
 import { useEffect, useRef, useState } from "react";
-import { Animated, StyleSheet, Text } from "react-native";
+import { Animated, StyleSheet } from "react-native";
+import { Text } from "./ui";
+import { palette } from "@/constants/theme";
 
 export default function NoInternetBanner() {
   const [isConnected, setIsConnected] = useState<boolean | null>(true);
@@ -75,10 +77,10 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   offlineBanner: {
-    backgroundColor: '#2D2A32',
+    backgroundColor: palette.ink,
   },
   onlineBanner: {
-    backgroundColor: '#06D6A0',
+    backgroundColor: palette.success,
   },
   icon: {
     fontSize: 14,

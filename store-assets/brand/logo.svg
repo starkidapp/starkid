@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#8B7CFF"/><stop offset=".55" stop-color="#6C5CE7"/><stop offset="1" stop-color="#4FACFE"/>
+  </linearGradient>
+  <radialGradient id="glow" cx=".5" cy=".53" r=".5">
+    <stop offset="0" stop-color="#FFF6C2" stop-opacity=".75"/><stop offset=".55" stop-color="#FFE27A" stop-opacity=".18"/><stop offset="1" stop-color="#FFE27A" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="starFill" cx=".42" cy=".35" r=".75">
+    <stop offset="0" stop-color="#FFF27A"/><stop offset=".45" stop-color="#FFD43B"/><stop offset="1" stop-color="#FFA81E"/>
+  </radialGradient>
+  <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+    <feDropShadow dx="0" dy="22" stdDeviation="24" flood-color="#2A1B7A" flood-opacity=".45"/>
+  </filter>
+</defs><g transform="translate(512 512) scale(1.2) translate(-512 -530)">
+  <g filter="url(#shadow)">
+    <polygon points="512.0,248.0 600.2,426.6 797.3,455.3 654.7,594.4 688.3,790.7 512.0,698.0 335.7,790.7 369.3,594.4 226.7,455.3 423.8,426.6" fill="url(#starFill)" stroke="url(#starFill)" stroke-width="70" stroke-linejoin="round"/>
+  </g>
+  <polygon points="512.0,248.0 600.2,426.6 797.3,455.3 654.7,594.4 688.3,790.7 512.0,698.0 335.7,790.7 369.3,594.4 226.7,455.3 423.8,426.6" fill="none" stroke="#F59E0B" stroke-width="70" stroke-linejoin="round" opacity=".55"/>
+  <polygon points="512.0,248.0 600.2,426.6 797.3,455.3 654.7,594.4 688.3,790.7 512.0,698.0 335.7,790.7 369.3,594.4 226.7,455.3 423.8,426.6" fill="url(#starFill)" stroke="url(#starFill)" stroke-width="52" stroke-linejoin="round"/>
+  <path d="M492,300 Q478,335 462,372" stroke="#fff" stroke-width="26" stroke-linecap="round" fill="none" opacity=".7"/>
+  <ellipse cx="305" cy="462" rx="40" ry="17" fill="#fff" opacity=".55" transform="rotate(-12 300 455)"/>
+  <!-- face -->
+  <ellipse cx="438" cy="545" rx="34" ry="42" fill="#3B2A1A"/>
+  <ellipse cx="586" cy="545" rx="34" ry="42" fill="#3B2A1A"/>
+  <circle cx="449" cy="530" r="13" fill="#fff"/><circle cx="597" cy="530" r="13" fill="#fff"/>
+  <circle cx="428" cy="560" r="6" fill="#fff" opacity=".8"/><circle cx="576" cy="560" r="6" fill="#fff" opacity=".8"/>
+  <ellipse cx="378" cy="612" rx="38" ry="24" fill="#FF7AA2" opacity=".7"/>
+  <ellipse cx="646" cy="612" rx="38" ry="24" fill="#FF7AA2" opacity=".7"/>
+  <path d="M448,608 Q512,712 576,608 Q512,640 448,608Z" fill="#3B2A1A" stroke="#3B2A1A" stroke-width="10" stroke-linejoin="round"/>
+  <path d="M478,654 Q512,686 546,654 Q512,640 478,654Z" fill="#FF6B8B"/>
+</g></svg>

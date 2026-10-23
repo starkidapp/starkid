@@ -1,16 +1,47 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
+import { AppText, Avatar, StarBadge } from "@/components/ui";
+import { colors, palette, radii, shadows, spacing } from "@/constants/theme";
 import { capitalizeWords } from "../utils/textUtils";
+
 interface LeaderboardItemProps {
-  item: { name: string; stars: number };
-  index: number;
+  item: { name: string; stars: number; avatar?: string };
+  /** 1-based; tied kids share a rank. */
+  rank: number;
 }
-export default function LeaderboardItem({ item, index }: LeaderboardItemProps) {
+
+const MEDALS = ["🥇", "🥈", "🥉"];
+const PODIUM_TONE = [palette.star, "#C7CCD1", "#E8A87C"];
+
+export default function LeaderboardItem({ item, rank }: LeaderboardItemProps) {
+  const index = rank - 1;
+  const isPodium = index < 3;
+  const isLeader = rank === 1 && item.stars > 0;
+
   return (
-    <View style={styles.row}>
-      <Text style={styles.rank}>#{index + 1}</Text>
-      <Text style={styles.name}>{capitalizeWords(item.name)}</Text>
-      <Text style={styles.stars}>{item.stars} ⭐</Text>
+    <View
+      style={[
+        styles.row,
+        isPodium && { borderColor: PODIUM_TONE[index], borderWidth: 2 },
+      ]}
+    >
+      <View style={styles.rankWrap}>
+        {isPodium ? (
+          <AppText style={styles.medal}>{MEDALS[index]}</AppText>
+        ) : (
+          <AppText variant="heading" color="textFaint">
+            {rank}
+          </AppText>
+        )}
+      </View>
+
+      <Avatar emoji={item.avatar || "🧒"} size="sm" crowned={isLeader} />
+
+      <AppText variant="subtitle" style={styles.name} numberOfLines={1}>
+        {capitalizeWords(item.name)}
+      </AppText>
+
+      <StarBadge count={item.stars} />
     </View>
   );
 }
@@ -18,13 +49,18 @@ export default function LeaderboardItem({ item, index }: LeaderboardItemProps) {
 const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    backgroundColor: "#fff",
-    padding: 16,
-    borderRadius: 18,
-    marginBottom: 10,
+    alignItems: "center",
+    gap: spacing.md,
+    backgroundColor: colors.card,
+    padding: spacing.md,
+    paddingTop: spacing.lg,
+    borderRadius: radii.lg,
+    marginBottom: spacing.md,
+    borderWidth: 2,
+    borderColor: "transparent",
+    ...shadows.sm,
   },
-  rank: { fontWeight: "900", fontSize: 18 },
-  name: { fontSize: 18, fontWeight: "700" },
-  stars: { fontWeight: "900" },
+  rankWrap: { width: 32, alignItems: "center" },
+  medal: { fontSize: 24 },
+  name: { flex: 1 },
 });

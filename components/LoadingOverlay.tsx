@@ -1,28 +1,40 @@
 import { useLoading } from "@/app/context/LoadingContext";
-import { Colors } from "@/constants/theme";
-import { ActivityIndicator, Modal, StyleSheet, useColorScheme, View } from "react-native";
+import { colors, radii, shadows } from "@/constants/theme";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
 
 export default function LoadingOverlay() {
-    const { loading } = useLoading();
-    const scheme = useColorScheme() || "light";
-    const color = Colors[scheme].tint;
+  const { loading } = useLoading();
 
-    if (!loading) return null;
+  if (!loading) return null;
 
-    return (
-        <Modal transparent animationType="fade" visible={loading}>
-            <View style={styles.backdrop} pointerEvents="auto">
-                <ActivityIndicator size="large" color={color} />
-            </View>
-        </Modal>
-    );
+  // A plain absolute overlay rather than a <Modal>: a Modal shown and hidden
+  // quickly during a navigation (e.g. right after login) can stay attached on
+  // iOS and leave the screen unresponsive until the app is restarted.
+  return (
+    <View style={styles.backdrop}>
+      <View style={styles.card}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-    backdrop: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: "rgba(0,0,0,0.25)",
-    },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 1000,
+    elevation: 1000,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: colors.overlay,
+  },
+  card: {
+    width: 84,
+    height: 84,
+    borderRadius: radii.lg,
+    backgroundColor: colors.card,
+    alignItems: "center",
+    justifyContent: "center",
+    ...shadows.lg,
+  },
 });

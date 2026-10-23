@@ -1,5 +1,7 @@
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Text } from "@/components/ui";
+import { colors, radii, spacing } from "@/constants/theme";
 import ScreenHeader from "./components/ScreenHeader";
 
 export default function PrivacyPolicyScreen() {
@@ -13,9 +15,9 @@ export default function PrivacyPolicyScreen() {
                 {/* <Text style={styles.title}>Privacy Policy</Text> */}
                 <Text style={styles.updated}>Last Updated: June 2026</Text>
 
-                <Section title="Welcome to StarKid">
+                <Section title="Welcome to StarBo">
                     Your privacy is important to us. This Privacy Policy explains how
-                    StarKid collects, uses, stores, and protects your information when you
+                    StarBo collects, uses, stores, and protects your information when you
                     use our application.
                 </Section>
 
@@ -33,7 +35,7 @@ export default function PrivacyPolicyScreen() {
                 </Section>
 
                 <Section title="Children’s Privacy">
-                    StarKid is intended to be used by children under the supervision of a
+                    StarBo is intended to be used by children under the supervision of a
                     parent or legal guardian. We do not knowingly collect personal
                     information directly from children without parental involvement.
                     Parents are responsible for creating and managing child profiles.
@@ -41,7 +43,7 @@ export default function PrivacyPolicyScreen() {
 
                 <Section title="Data Storage and Security">
                     Your information may be securely stored using trusted cloud service
-                    providers, including Firebase services provided by Google. We use
+                    providers, including services provided by Google. We use
                     reasonable security measures to protect your information, but no method
                     of electronic storage or transmission is completely secure.
                 </Section>
@@ -53,8 +55,7 @@ export default function PrivacyPolicyScreen() {
                 </Section>
 
                 <Section title="Third-Party Services">
-                    StarKid may use services such as Firebase Authentication, Firebase
-                    Firestore, Firebase Storage, Firebase Analytics if enabled, Google Play
+                    StarBo may use services such as Google sign-in and cloud storage, Google Play
                     Services, and Apple App Store Services. These services may collect
                     information according to their own privacy policies.
                 </Section>
@@ -82,7 +83,7 @@ export default function PrivacyPolicyScreen() {
                 </Section>
 
                 <Text style={styles.footer}>
-                    By using StarKid, you acknowledge that you have read and understood
+                    By using StarBo, you acknowledge that you have read and understood
                     this Privacy Policy.
                 </Text>
             </ScrollView>
@@ -106,47 +107,27 @@ function Section({
 }
 
 const styles = StyleSheet.create({
-    screen: {
-        flex: 1,
-        backgroundColor: "#FFF8E7",
-    },
-    container: {
-        padding: 20,
-        paddingBottom: 40,
-    },
-    title: {
-        fontSize: 28,
-        fontWeight: "900",
-        color: "#2D2A32",
-        marginBottom: 6,
-    },
-    updated: {
-        fontSize: 13,
-        color: "#777",
-        marginBottom: 20,
-    },
+    screen: { flex: 1, backgroundColor: colors.bg },
+    container: { padding: spacing.xl, paddingBottom: spacing["4xl"] },
+    updated: { fontSize: 12.5, color: colors.textFaint, marginBottom: spacing.xl },
     section: {
-        backgroundColor: "#fff",
-        padding: 16,
-        borderRadius: 14,
-        marginBottom: 14,
+        backgroundColor: colors.card,
+        padding: spacing.lg,
+        borderRadius: radii.lg,
+        marginBottom: spacing.md,
     },
     sectionTitle: {
-        fontSize: 17,
-        fontWeight: "800",
-        color: "#6C63FF",
-        marginBottom: 8,
+        fontSize: 16,
+        fontWeight: "700",
+        color: colors.primary,
+        marginBottom: spacing.sm,
     },
-    sectionText: {
-        fontSize: 14,
-        lineHeight: 22,
-        color: "#444",
-    },
+    sectionText: { fontSize: 15, lineHeight: 23, color: colors.textMuted },
     footer: {
-        fontSize: 13,
-        lineHeight: 20,
-        color: "#666",
+        fontSize: 12.5,
+        lineHeight: 19,
+        color: colors.textMuted,
         textAlign: "center",
-        marginTop: 10,
+        marginTop: spacing.md,
     },
 });

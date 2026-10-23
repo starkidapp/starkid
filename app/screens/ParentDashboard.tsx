@@ -1,52 +1,28 @@
 import { auth, db } from "@/lib/firebase/config";
-import { t } from "@/lib/i18n";
 import { router, useLocalSearchParams } from "expo-router";
-import {
-  EmailAuthProvider,
-  reauthenticateWithCredential,
-} from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { useEffect, useRef, useState } from "react";
 import {
   Alert,
-  AppState,
   FlatList,
   LayoutAnimation,
   Modal,
   Platform,
   ScrollView,
   StyleSheet,
-  Text,
   TextInput,
   TouchableOpacity,
   UIManager,
-  View
+  View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+
+import { Avatar, Text } from "@/components/ui";
+import { colors, palette, radii, shadows, spacing } from "@/constants/theme";
 import ScreenHeader from "../components/ScreenHeader";
 import { useKids } from "../context/KidContext";
-// import { useWithLoading } from "../context/LoadingContext";
-import { capitalizeWords } from "../utils/textUtils";
-import { alertNetworkError, checkInternet, isNetworkError } from "../utils/netUtils";
+import { capitalizeWords, joinNames } from "../utils/textUtils";
 
 export default function ParentDashboard() {
-  // const {
-  //   kids,
-  //   addKid,
-  //   updateKid,
-  //   removeKid,
-  //   tasks,
-  //   addTask,
-  //   completions,
-  //   competitions,
-  //   removeCompletion,
-  //   getMonthlyStars,
-  //   addBonus,
-  //   addPenalty,
-  //   resetCompetition,
-  //   getKidStars,
-  // } = useKids();
-
   const {
     kids,
     addKid,
@@ -59,32 +35,33 @@ export default function ParentDashboard() {
     completions,
     competitions,
     removeCompletion,
-    getMonthlyStars,
+    getChallengeStars,
+    getLeaderIds,
     addBonus,
     addPenalty,
     resetCompetition,
-    getKidStars,
   } = useKids();
+
   const [modalVisible, setModalVisible] = useState(false);
   const [taskModalVisible, setTaskModalVisible] = useState(false);
   const [name, setName] = useState("");
   const [avatar, setAvatar] = useState("🧒");
   const [pin, setPin] = useState("");
   const [taskTitle, setTaskTitle] = useState("");
-  const [subtasks, setSubtasks] = useState<{ title: string; stars: string }[]>([]);
+  const [subtasks, setSubtasks] = useState<{ title: string; stars: string }[]>([
+    { title: "Subtask 1", stars: "1" },
+  ]);
 
   const { from } = useLocalSearchParams();
   const [authModalVisible, setAuthModalVisible] = useState(false);
   const [requiresAuth, setRequiresAuth] = useState(false);
   const [parentPinInput, setParentPinInput] = useState("");
   const [setupPin, setSetupPin] = useState("");
-  const [authenticated, setAuthenticated] = useState(false);
-  const appState = useRef(AppState.currentState);
-  const authPinInputRef = useRef<TextInput>(null);
   const [setupConfirmPin, setSetupConfirmPin] = useState("");
   const [parentPin, setParentPin] = useState<string | null>(null);
   const [parentPinLoading, setParentPinLoading] = useState(true);
   const [resetPinModalVisible, setResetPinModalVisible] = useState(false);
+  const [authenticated, setAuthenticated] = useState(false);
 
   const [bonusModalVisible, setBonusModalVisible] = useState(false);
   const [bonusKidId, setBonusKidId] = useState<string | null>(null);
@@ -109,8 +86,6 @@ export default function ParentDashboard() {
   const [editTaskModalVisible, setEditTaskModalVisible] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editTaskTitle, setEditTaskTitle] = useState("");
-  const [forgotPinModalVisible, setForgotPinModalVisible] = useState(false);
-  const [parentPassword, setParentPassword] = useState("");
   const [editSubtasks, setEditSubtasks] = useState<
     { title: string; stars: string }[]
   >([]);
@@ -120,30 +95,17 @@ export default function ParentDashboard() {
   const [kidToResetId, setKidToResetId] = useState<string | null>(null);
   const [kidPinInput, setKidPinInput] = useState("");
 
-  // Kid edit states
-  const [editKidModalVisible, setEditKidModalVisible] = useState(false);
-  const [editingKidId, setEditingKidId] = useState<string | null>(null);
-  const [editKidName, setEditKidName] = useState("");
-  const [editKidAvatar, setEditKidAvatar] = useState("🧒");
-
-  function handleEditKid() {
-    if (!editingKidId) return;
-    if (!editKidName.trim()) {
-      Alert.alert("Validation", "Name cannot be empty.");
-      return;
-    }
-    const kid = kids.find((k) => k.id === editingKidId);
-    if (!kid) return;
-    updateKid({ ...kid, name: editKidName.trim(), avatar: editKidAvatar });
-    setEditKidModalVisible(false);
-    setEditingKidId(null);
-    setEditKidName("");
-    setEditKidAvatar("🧒");
-  }
+  // Refs so PIN inputs focus as soon as their popup opens
+  const parentUnlockPinRef = useRef<TextInput>(null);
+  const parentSetupPinRef = useRef<TextInput>(null);
+  const resetPinRef = useRef<TextInput>(null);
+  const kidPinRef = useRef<TextInput>(null);
+  const focusSoon = (ref: React.RefObject<TextInput | null>) =>
+    setTimeout(() => ref.current?.focus(), 60);
 
   function handleAdd() {
     if (!name.trim() || pin.length !== 4 || !/^[0-9]{4}$/.test(pin)) {
-      Alert.alert("Validation", "Enter name and a 4-digit numeric PIN");
+      Alert.alert("Missing details", "Please enter the kid's name and a 4-number PIN.");
       return;
     }
 
@@ -155,8 +117,8 @@ export default function ParentDashboard() {
   }
 
   function handleAddTask() {
-    if (!taskTitle.trim()) {
-      Alert.alert("Validation", "Enter a task title");
+    if (subtasks.length === 0) {
+      Alert.alert("Add a step", "Please add at least one step to this task.");
       return;
     }
 
@@ -164,48 +126,21 @@ export default function ParentDashboard() {
       title: s.title.trim() || "Subtask",
       stars: Number(s.stars) || 1,
     }));
-    addTask({ title: taskTitle.trim(), subtasks: cleaned });
+
+    const needsMainTitle = cleaned.length > 1;
+    if (needsMainTitle && !taskTitle.trim()) {
+      Alert.alert("Missing task name", "Please give this task a name.");
+      return;
+    }
+
+    const finalTitle = cleaned.length === 1
+      ? (taskTitle.trim() || cleaned[0].title)
+      : taskTitle.trim();
+
+    addTask({ title: finalTitle, subtasks: cleaned });
     setTaskTitle("");
     setSubtasks([{ title: "Subtask 1", stars: "1" }]);
     setTaskModalVisible(false);
-  }
-
-  async function verifyParentPasswordForPinReset() {
-    const currentUser = auth.currentUser;
-
-    if (!currentUser?.email) {
-      Alert.alert(t('parentDashboard.error_parent_email_not_found'));
-      return;
-    }
-
-    if (!parentPassword.trim()) {
-      Alert.alert(t('parentDashboard.validation_enter_password'));
-      return;
-    }
-
-    if (!(await checkInternet())) return;
-
-    try {
-      const credential = EmailAuthProvider.credential(
-        currentUser.email,
-        parentPassword
-      );
-
-      await reauthenticateWithCredential(currentUser, credential);
-
-      setForgotPinModalVisible(false);
-      setParentPassword("");
-      setSetupPin("");
-      setSetupConfirmPin("");
-      setResetPinModalVisible(true);
-    } catch (error: any) {
-      console.error("Reauthentication failed:", error);
-      if (isNetworkError(error)) {
-        alertNetworkError();
-      } else {
-        Alert.alert(t('parentDashboard.incorrect_password'), t('parentDashboard.incorrect_password_msg'));
-      }
-    }
   }
 
   function openEditTaskModal(task: any) {
@@ -220,51 +155,39 @@ export default function ParentDashboard() {
     setEditTaskModalVisible(true);
   }
 
-
   function handleEditTask() {
-    if (!editingTaskId) return;
-
-    if (!editTaskTitle.trim() || editSubtasks.length === 0) {
-      Alert.alert("Validation", "Enter task title and at least one subtask");
+    if (!editingTaskId || !editTaskTitle.trim() || editSubtasks.length === 0) {
+      Alert.alert("Missing details", "Please enter a task name and at least one step.");
       return;
     }
 
-    const cleanedSubtasks = editSubtasks.map((s, index) => ({
-      id: `${editingTaskId}_subtask_${index + 1}`,
+    const original = tasks.find((t) => t.id === editingTaskId);
+    const subtasks = editSubtasks.map((s, index) => ({
+      id:
+        original?.subtasks[index]?.id ??
+        Date.now().toString() + "-" + Math.random().toString(36).slice(2, 7),
       title: s.title.trim() || "Subtask",
       stars: Number(s.stars) || 1,
     }));
 
-    updateTask(editingTaskId, {
-      title: editTaskTitle.trim(),
-      subtasks: cleanedSubtasks,
-    });
-
+    updateTask({ id: editingTaskId, title: editTaskTitle.trim(), subtasks });
     setEditTaskModalVisible(false);
     setEditingTaskId(null);
-    setEditTaskTitle("");
-    setEditSubtasks([]);
-
-    Alert.alert("Success", "Task updated successfully.");
   }
-
 
   function handleDeleteTask(taskId: string) {
     const task = tasks.find((t) => t.id === taskId);
     if (!task) return;
 
     Alert.alert(
-      "Delete Task",
-      `Are you sure you want to delete "${task.title}"?`,
+      "Delete task?",
+      `Delete "${task.title}"? You can't undo this.`,
       [
         { text: "Cancel", style: "cancel" },
         {
           text: "Delete",
           style: "destructive",
-          onPress: () => {
-            removeTask(taskId);
-            Alert.alert("Deleted", "Task deleted successfully.");
-          },
+          onPress: () => removeTask(taskId),
         },
       ],
     );
@@ -278,80 +201,41 @@ export default function ParentDashboard() {
     return completions.filter((c) => c.kidId === kidId && c.isPenalty)
       .length;
   }
+
   useEffect(() => {
     const loadParentPin = async () => {
       const currentUser = auth.currentUser;
+      if (!currentUser) {
+        setParentPinLoading(false);
+        return;
+      }
 
       try {
-        if (currentUser) {
-          const docRef = doc(db, "parents", currentUser.uid);
-          const docSnap = await getDoc(docRef);
-          const data = docSnap.exists() ? docSnap.data() : {};
-          setParentPin(data?.parentPin ?? "");
-        } else {
-          setParentPin("");
-        }
+        const docRef = doc(db, "parents", currentUser.uid);
+        const docSnap = await getDoc(docRef);
+        const data = docSnap.exists() ? docSnap.data() : {};
+        setParentPin(data?.parentPin ?? "");
       } catch (error) {
         console.error("Error loading parent PIN:", error);
         setParentPin("");
       } finally {
         setParentPinLoading(false);
-        setRequiresAuth(true);
-        setAuthModalVisible(true);
       }
     };
 
+    setRequiresAuth(from === "index");
     loadParentPin();
-  }, []);
-  // useEffect(() => {
-  //   const loadParentPin = async () => {
-  //     const currentUser = auth.currentUser;
-  //     if (!currentUser) {
-  //       setParentPinLoading(false);
-  //       return;
-  //     }
-
-  //     try {
-  //       const docRef = doc(db, "parents", currentUser.uid);
-  //       const docSnap = await getDoc(docRef);
-  //       const data = docSnap.exists() ? docSnap.data() : {};
-  //       setParentPin(data?.parentPin ?? "");
-  //     } catch (error) {
-  //       console.error("Error loading parent PIN:", error);
-  //       setParentPin("");
-  //     } finally {
-  //       setParentPinLoading(false);
-  //     }
-  //   };
-
-  //   setRequiresAuth(from === "index");
-  //   loadParentPin();
-  // }, []);
+  }, [from]);
 
   useEffect(() => {
-    if (requiresAuth && !authenticated) {
-      setAuthModalVisible(true);
+    setAuthModalVisible(requiresAuth && !authenticated && !parentPinLoading);
+  }, [authenticated, parentPinLoading, requiresAuth]);
+
+  useEffect(() => {
+    if (authModalVisible) {
+      focusSoon(parentPin ? parentUnlockPinRef : parentSetupPinRef);
     }
-  }, [requiresAuth, authenticated]);
-
-  useEffect(() => {
-    const subscription = AppState.addEventListener("change", (nextState) => {
-      if (
-        appState.current.match(/inactive|background/) &&
-        nextState === "active"
-      ) {
-        if (requiresAuth) {
-          setAuthenticated(false);
-          setAuthModalVisible(true);
-        }
-      }
-      appState.current = nextState;
-    });
-
-    return () => subscription.remove();
-  }, [requiresAuth]);
-
-  // auth modal visibility is controlled on mount and by auth actions
+  }, [authModalVisible, parentPin]);
 
   useEffect(() => {
     if (
@@ -372,7 +256,7 @@ export default function ParentDashboard() {
       setAuthModalVisible(false);
       setParentPinInput("");
     } else {
-      Alert.alert("Incorrect PIN");
+      Alert.alert("Wrong PIN", "That PIN is not correct. Please try again.");
     }
   }
 
@@ -381,16 +265,14 @@ export default function ParentDashboard() {
     if (!currentUser) return;
 
     if (!/^[0-9]{4}$/.test(setupPin)) {
-      Alert.alert("Validation", "PIN must be exactly 4 digits.");
+      Alert.alert("Check the PIN", "The PIN must be 4 numbers.");
       return;
     }
 
     if (setupPin !== setupConfirmPin) {
-      Alert.alert("Validation", "PINs do not match.");
+      Alert.alert("PINs don't match", "Please type the same PIN in both boxes.");
       return;
     }
-
-    if (!(await checkInternet())) return;
 
     try {
       await setDoc(
@@ -405,22 +287,22 @@ export default function ParentDashboard() {
       setSetupPin("");
       setSetupConfirmPin("");
       setParentPinInput("");
-      Alert.alert("Success", "Parent PIN has been set.");
-    } catch (error: any) {
+      Alert.alert("Saved ✅", "Your parent PIN is set.");
+    } catch (error) {
       console.error("Error saving parent PIN:", error);
-      if (isNetworkError(error)) { alertNetworkError(); } else { Alert.alert("Save failed", "Unable to save PIN. Please try again."); }
+      Alert.alert("Couldn't save", "Please try again.");
     }
   }
 
   async function saveKidPin() {
     if (!kidToResetId) return;
     if (!/^[0-9]{4}$/.test(kidPinInput)) {
-      Alert.alert("Validation", "Enter a 4-digit numeric PIN");
+      Alert.alert("Check the PIN", "The PIN must be 4 numbers.");
       return;
     }
     const kid = kids.find((k) => k.id === kidToResetId);
     if (!kid) {
-      Alert.alert("Error", "Kid not found");
+      Alert.alert("Kid not found", "Please go back and try again.");
       return;
     }
 
@@ -429,78 +311,74 @@ export default function ParentDashboard() {
       setKidPinModalVisible(false);
       setKidToResetId(null);
       setKidPinInput("");
-      Alert.alert("Success", `PIN reset for ${kid.name}`);
+      Alert.alert("Saved ✅", `${kid.name}'s PIN has been changed.`);
     } catch (error) {
       console.error("Error resetting kid PIN", error);
-      Alert.alert("Error", "Unable to reset PIN. Please try again.");
+      Alert.alert("Couldn't save", "Please try again.");
     }
   }
 
-  const topKid =
-    kids.length > 0
-      ? kids.reduce((top, kid) =>
-        getMonthlyStars(kid.id) > getMonthlyStars(top.id) ? kid : top
-      )
-      : null;
-
-  const topKidStars = topKid ? getMonthlyStars(topKid.id) : 0;
-
-  const maxStars =
-    kids.length > 0
-      ? Math.max(...kids.map((kid) => getMonthlyStars(kid.id)))
-      : 0;
-
-  const topKids =
-    maxStars > 0
-      ? kids.filter((kid) => getMonthlyStars(kid.id) === maxStars)
-      : [];
-
-  const topKidNames =
-    topKids.length > 0
-      ? topKids.map((kid) => capitalizeWords(kid.name)).join(", ")
-      : "No Winner";
+  // Everyone tied on the most stars leads together.
+  const leaderIds = getLeaderIds();
+  const leaders = kids.filter((k) => leaderIds.includes(k.id));
+  const leaderNames = joinNames(leaders.map((k) => capitalizeWords(k.name)));
+  const leaderStars = leaders.length > 0 ? getChallengeStars(leaders[0].id) : 0;
 
   return (
-    <SafeAreaView style={styles.safeAreaContainer}>
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <ScreenHeader
         title="Parent Dashboard"
         rightButton={{
           icon: "person-circle",
           onPress: () =>
-            router.push("/screens/ParentProfileScreen?fromParentDashboard=1"),
+            router.push({
+              pathname: "/screens/ParentProfileScreen",
+              // Already unlocked here, so don't ask for the access code again.
+              params: { fromParentDashboard: !requiresAuth || authenticated ? "1" : "0" },
+            }),
         }}
       />
       <ScrollView
         style={styles.container}
-        contentContainerStyle={styles.scrollViewContent}
+        contentContainerStyle={{ paddingBottom: 40 }}
       >
         <View style={styles.headerCard}>
+          <Text style={styles.title}>Parent Dashboard</Text>
           <Text style={styles.subtitle}>Manage kids, tasks and rewards</Text>
 
           <View style={styles.summaryRow}>
-            <View style={[styles.summaryTile, { backgroundColor: '#EDEAFF' }]}>
+            <View style={styles.summaryTile}>
               <Text style={styles.tileNumber}>{kids.length}</Text>
               <Text style={styles.tileLabel}>Kids</Text>
             </View>
-            <View style={[styles.summaryTile, { backgroundColor: '#FFF3DC' }]}>
+            <View style={styles.summaryTile}>
               <Text style={styles.tileNumber}>{tasks.length}</Text>
               <Text style={styles.tileLabel}>Tasks</Text>
             </View>
-            {/* <View style={styles.summaryTile}>
+            <View style={styles.summaryTile}>
               <Text style={styles.tileNumber}>
-                {topKid ? `${topKidStars}⭐` : "0⭐"}
+                {kids.reduce((a, k) => a + getChallengeStars(k.id), 0)}
               </Text>
-              <Text style={styles.tileLabel}>
-                {topKid ? capitalizeWords(topKid.name) : "No Winner"}
-              </Text>
-            </View> */}
-            <View style={[styles.summaryTile, { backgroundColor: '#E3FBF3' }]}>
-              <Text style={styles.tileNumber}>{maxStars}⭐</Text>
-              <Text style={styles.tileLabel} numberOfLines={2}>
-                {topKidNames}
-              </Text>
+              <Text style={styles.tileLabel}>This challenge ⭐</Text>
             </View>
           </View>
+
+          <TouchableOpacity
+            style={styles.leaderRow}
+            activeOpacity={0.8}
+            onPress={() => router.push("/screens/LeaderboardScreen")}
+          >
+            <Text style={styles.leaderEmoji}>🏆</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.leaderLabel}>Top of the challenge</Text>
+              <Text style={styles.leaderName} numberOfLines={1}>
+                {leaders.length > 0
+                  ? `${leaderNames} · ${leaderStars} ⭐`
+                  : "No stars earned yet"}
+              </Text>
+            </View>
+            <Text style={styles.leaderChevron}>›</Text>
+          </TouchableOpacity>
 
           <View style={styles.actionsRow}>
             <TouchableOpacity
@@ -527,23 +405,9 @@ export default function ParentDashboard() {
               styles.primaryBtn,
               { backgroundColor: "#f17f0da4", marginTop: 12 },
             ]}
-            onPress={() => {
-              const hasActiveCompetition =
-                completions.length > 0 ||
-                kids.some((kid) => getKidStars(kid.id) > 0);
-
-              if (!hasActiveCompetition) {
-                Alert.alert(
-                  "No Active Competition",
-                  "There is no ongoing competition at the moment. "
-                );
-                return;
-              }
-
-              setResetModalVisible(true);
-            }}
+            onPress={() => setResetModalVisible(true)}
           >
-            <Text style={styles.primaryBtnText}>🏆 End Competition</Text>
+            <Text style={styles.primaryBtnText}>🏆 End Challenge</Text>
           </TouchableOpacity>
         </View>
 
@@ -563,8 +427,13 @@ export default function ParentDashboard() {
                 return (
                   <View style={styles.kidCard}>
                     <View style={styles.kidHeaderRow}>
-                      <View style={styles.kidAvatarBg}><Text style={styles.kidAvatar}>{item.avatar}</Text></View>
-                      <View style={styles.kidNameContainer}>
+                      <Avatar
+                        emoji={item.avatar}
+                        size="md"
+                        crowned={leaderIds.includes(item.id)}
+                        style={leaderIds.includes(item.id) ? styles.crownedAvatar : undefined}
+                      />
+                      <View style={{ marginLeft: 12, flex: 1, minWidth: 0 }}>
                         <Text style={styles.kidNameLabel}>Name</Text>
                         <Text
                           style={styles.kidName}
@@ -577,9 +446,9 @@ export default function ParentDashboard() {
                     </View>
                     <View style={styles.kidStatsGrid}>
                       <View style={styles.kidStatBlock}>
-                        <Text style={styles.kidStatLabel}>Stars this month</Text>
+                        <Text style={styles.kidStatLabel}>Stars this challenge</Text>
                         <Text style={styles.kidStatValue}>
-                          {getMonthlyStars(item.id)} ⭐
+                          {getChallengeStars(item.id)} ⭐
                         </Text>
                       </View>
                       <View style={styles.kidStatBlock}>
@@ -592,17 +461,6 @@ export default function ParentDashboard() {
                       </View>
                     </View>
                     <View style={styles.kidActions}>
-                      <TouchableOpacity
-                        style={styles.smallEditBtn}
-                        onPress={() => {
-                          setEditingKidId(item.id);
-                          setEditKidName(item.name);
-                          setEditKidAvatar(item.avatar);
-                          setEditKidModalVisible(true);
-                        }}
-                      >
-                        <Text style={styles.smallEditBtnText}>✏️ Edit</Text>
-                      </TouchableOpacity>
                       <TouchableOpacity
                         style={styles.smallPrimaryBtn}
                         onPress={() => {
@@ -635,8 +493,8 @@ export default function ParentDashboard() {
                         style={styles.smallDeleteBtn}
                         onPress={() => {
                           Alert.alert(
-                            "Delete Kid",
-                            `Are you sure you want to delete ${displayName}? This action cannot be undone.`,
+                            "Remove kid?",
+                            `Remove ${displayName} and all their stars? You can't undo this.`,
                             [
                               { text: "Cancel", style: "cancel" },
                               {
@@ -666,42 +524,52 @@ export default function ParentDashboard() {
               keyExtractor={(i) => i.id}
               renderItem={({ item }) => (
                 <View style={styles.taskCard}>
-                  <View style={styles.taskAccentBar} />
-                  <View style={styles.taskCardBody}>
-                    <View style={styles.taskHeaderRow}>
-                      <Text style={styles.taskTitleText}>
-                        {item.title}
-                      </Text>
-                      <View style={styles.actionButtonRow}>
-                        <TouchableOpacity
-                          style={styles.actionButton}
-                          onPress={() => openEditTaskModal(item)}
-                        >
-                          <Text style={styles.editDeleteButtonText}>✏️</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={[styles.actionButton, { backgroundColor: "#d32f2f" }]}
-                          onPress={() => handleDeleteTask(item.id)}
-                        >
-                          <Text style={styles.editDeleteButtonText}>🗑️</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                    <Text style={styles.subtaskCountText}>
-                      {item.subtasks.length} subtasks
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Text style={{ fontWeight: "800", fontSize: 16 }}>
+                      {item.title}
                     </Text>
-                    <View style={styles.subtasksRow}>
-                      {item.subtasks.map((st) => (
-                        <View key={st.id} style={styles.subtaskChip}>
-                          <Text style={styles.subtaskTitleText}>
-                            {st.title}
-                          </Text>
-                          <Text style={styles.subtaskStarText}>
-                            {st.stars}⭐
-                          </Text>
-                        </View>
-                      ))}
+                    <View style={{ flexDirection: "row", gap: 8 }}>
+                      <TouchableOpacity
+                        style={styles.actionButton}
+                        onPress={() => openEditTaskModal(item)}
+                      >
+                        <Text style={{ color: "#fff", fontSize: 12 }}>✏️</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.actionButton, { backgroundColor: "#d32f2f" }]}
+                        onPress={() => handleDeleteTask(item.id)}
+                      >
+                        <Text style={{ color: "#fff", fontSize: 12 }}>🗑️</Text>
+                      </TouchableOpacity>
                     </View>
+                  </View>
+                  <Text style={{ color: "#666", fontSize: 12, marginTop: 4 }}>
+                    {item.subtasks.length} subtasks
+                  </Text>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      flexWrap: "wrap",
+                      marginTop: 8,
+                      gap: 8,
+                    }}
+                  >
+                    {item.subtasks.map((st) => (
+                      <View key={st.id} style={styles.subtaskChip}>
+                        <Text style={{ color: "#023047", fontWeight: "700" }}>
+                          {st.title}
+                        </Text>
+                        <Text style={{ marginLeft: 8, color: "#fb8500" }}>
+                          {st.stars}⭐
+                        </Text>
+                      </View>
+                    ))}
                   </View>
                 </View>
               )}
@@ -711,14 +579,14 @@ export default function ParentDashboard() {
 
         {completions.length > 0 && (
           <>
-            <Text style={[styles.section, { marginTop: 12 }]}>Today's Completions</Text>
+            <Text style={[styles.section, { marginTop: 12 }]}>Today’s Completions</Text>
             {(() => {
               const today = new Date().toISOString().slice(0, 10);
               const todayComps = completions.filter((c) => c.date === today);
               if (todayComps.length === 0) {
                 return (
-                  <View style={styles.todayCompletionPlaceholder}>
-                    <Text style={styles.emptyStateText}>
+                  <View style={{ padding: 12 }}>
+                    <Text style={{ color: "#666" }}>
                       No completions yet today.
                     </Text>
                   </View>
@@ -748,20 +616,24 @@ export default function ParentDashboard() {
                         )
                       }
                     >
-                      <View style={styles.todayKidRow}>
-                        <Text style={styles.todayKidAvatar}>
-                          {item.kid?.avatar}
-                        </Text>
-                        <View style={styles.todayKidInfoContainer}>
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          flex: 1,
+                        }}
+                      >
+                        <Avatar emoji={item.kid?.avatar ?? "🧒"} size="sm" />
+                        <View style={{ marginLeft: 12, flex: 1 }}>
                           <Text style={styles.todayKidName}>
                             {item.kid?.name}
                           </Text>
-                          <Text style={styles.completionCountText}>
+                          <Text style={{ color: "#666", fontSize: 12 }}>
                             {item.completionCount} completion(s) today
                           </Text>
                         </View>
                       </View>
-                      <Text style={styles.viewDetailsText}>
+                      <Text style={{ color: "#6C63FF", fontWeight: "700" }}>
                         View Details →
                       </Text>
                     </TouchableOpacity>
@@ -774,28 +646,30 @@ export default function ParentDashboard() {
 
         {competitions.length > 0 && (
           <>
-            <Text style={[styles.section, { marginTop: 12 }]}>Past Competitions</Text>
+            <Text style={[styles.section, { marginTop: 12 }]}>Past Challenges</Text>
             <FlatList
               data={competitions.slice(-3)}
               keyExtractor={(item) => item.id}
               scrollEnabled={false}
               renderItem={({ item }) => (
                 <View style={styles.competitionCard}>
-                  <View style={styles.competitionHeaderRow}>
-                    <Text style={styles.competitionTitle}>
-                      {new Date(item.startDate).toLocaleDateString("en-US", {
-                        month: "long",
-                        year: "numeric",
-                      })} Competition
-                    </Text>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Text style={styles.competitionTitle}>Challenge</Text>
                     <Text style={styles.competitionDate}>
-                      {new Date(item.startDate).toLocaleDateString()} - {new Date(item.endDate).toLocaleDateString()}
+                      {new Date(item.startDate).toLocaleDateString()} – {new Date(item.endDate).toLocaleDateString()}
                     </Text>
                   </View>
                   {item.winner && (
-                    <View style={styles.winnerInfoContainer}>
+                    <View style={{ marginTop: 8 }}>
                       <Text style={styles.winnerText}>
-                        🏆 Winner: {item.winner.name}
+                        {(item.winners?.length ?? 0) > 1 ? "🏆 Winners: " : "🏆 Winner: "}
+                        {joinNames((item.winners ?? [item.winner]).map((w) => w.name))}
                       </Text>
                       {item.secondPlace && (
                         <Text style={styles.secondPlaceText}>
@@ -837,7 +711,7 @@ export default function ParentDashboard() {
                 keyboardType="number-pad"
                 style={styles.input}
               />
-              <View style={styles.buttonRow}>
+              <View style={{ flexDirection: "row", gap: 8 }}>
                 <TouchableOpacity
                   style={[styles.btn, { flex: 1 }]}
                   onPress={handleAdd}
@@ -866,7 +740,15 @@ export default function ParentDashboard() {
                 style={styles.input}
               />
               {subtasks.map((subtask, index) => (
-                <View key={index} style={styles.subtaskInputRow}>
+                <View
+                  key={index}
+                  style={{
+                    marginBottom: 8,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
                   <TextInput
                     placeholder={`Subtask ${index + 1}`}
                     value={subtask.title}
@@ -875,7 +757,7 @@ export default function ParentDashboard() {
                       updated[index] = { ...updated[index], title: value };
                       setSubtasks(updated);
                     }}
-                    style={[styles.input, styles.subtaskInputFlex]}
+                    style={[styles.input, { flex: 1 }]}
                   />
                   <TextInput
                     placeholder="Stars"
@@ -886,7 +768,7 @@ export default function ParentDashboard() {
                       setSubtasks(updated);
                     }}
                     keyboardType="number-pad"
-                    style={[styles.input, styles.starInputWidth]}
+                    style={[styles.input, { width: 64, textAlign: "center" }]}
                   />
                 </View>
               ))}
@@ -898,7 +780,7 @@ export default function ParentDashboard() {
               >
                 <Text style={styles.btnText}>+ Add Subtask</Text>
               </TouchableOpacity>
-              <View style={styles.buttonRowMargin}>
+              <View style={{ flexDirection: "row", gap: 8, marginTop: 12 }}>
                 <TouchableOpacity
                   style={[styles.btn, { flex: 1 }]}
                   onPress={handleAddTask}
@@ -910,7 +792,7 @@ export default function ParentDashboard() {
                   onPress={() => {
                     setTaskModalVisible(false);
                     setTaskTitle("");
-                    setSubtasks([]);
+                    setSubtasks([{ title: "Subtask 1", stars: "1" }]);
                   }}
                 >
                   <Text style={[styles.btnText, { color: "#000" }]}>Cancel</Text>
@@ -920,51 +802,25 @@ export default function ParentDashboard() {
           </View>
         </Modal>
 
-        <Modal visible={forgotPinModalVisible} transparent animationType="slide">
-          <View style={styles.modalBack}>
-            <View style={styles.modalCard}>
-              <Text style={styles.modalTitle}>Forgot Parent PIN</Text>
-              <Text style={styles.modalDescriptionText2}>
-                To reset the parent access code, re-enter your account password for verification.
-              </Text>
-              <TextInput
-                placeholder="Account password"
-                value={parentPassword}
-                onChangeText={(t) => setParentPassword(t.replace(/\s/g, ''))}
-                secureTextEntry
-                style={styles.input}
-              />
-              <View style={styles.buttonRow}>
-                <TouchableOpacity
-                  style={[styles.btn, { flex: 1 }]}
-                  onPress={verifyParentPasswordForPinReset}
-                >
-                  <Text style={styles.btnText}>Verify</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.btn, { flex: 1, backgroundColor: "#ccc" }]}
-                  onPress={() => setForgotPinModalVisible(false)}
-                >
-                  <Text style={[styles.btnText, { color: "#000" }]}>Cancel</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
-
-        <Modal visible={resetPinModalVisible} transparent animationType="slide">
+        <Modal
+          visible={resetPinModalVisible}
+          transparent
+          animationType="slide"
+          onShow={() => focusSoon(resetPinRef)}
+        >
           <View style={styles.modalBack}>
             <View style={styles.modalCard}>
               <Text style={styles.modalTitle}>Reset Parent Passcode</Text>
-              <Text style={styles.modalDescriptionText2}>
+              <Text style={{ color: "#666", marginBottom: 12 }}>
                 Enter a new 4-digit parent access code for this dashboard.
               </Text>
               <TextInput
+                ref={resetPinRef}
+                autoFocus
                 placeholder="New 4-digit PIN"
                 value={setupPin}
                 onChangeText={(t) => setSetupPin(t.replace(/[^0-9]/g, "").slice(0, 4))}
                 keyboardType="number-pad"
-                secureTextEntry
                 style={styles.input}
               />
               <TextInput
@@ -972,10 +828,9 @@ export default function ParentDashboard() {
                 value={setupConfirmPin}
                 onChangeText={(t) => setSetupConfirmPin(t.replace(/[^0-9]/g, "").slice(0, 4))}
                 keyboardType="number-pad"
-                secureTextEntry
                 style={styles.input}
               />
-              <View style={styles.buttonRow}>
+              <View style={{ flexDirection: "row", gap: 8 }}>
                 <TouchableOpacity style={[styles.btn, { flex: 1 }]} onPress={saveParentPin}>
                   <Text style={styles.btnText}>Save</Text>
                 </TouchableOpacity>
@@ -990,22 +845,28 @@ export default function ParentDashboard() {
           </View>
         </Modal>
 
-        <Modal visible={kidPinModalVisible} transparent animationType="slide">
+        <Modal
+          visible={kidPinModalVisible}
+          transparent
+          animationType="slide"
+          onShow={() => focusSoon(kidPinRef)}
+        >
           <View style={styles.modalBack}>
             <View style={styles.modalCard}>
               <Text style={styles.modalTitle}>Reset Kid Passcode</Text>
-              <Text style={styles.penaltyKidText}>
+              <Text style={{ color: "#666", marginBottom: 12 }}>
                 {kids.find((k) => k.id === kidToResetId)?.name ?? "Select kid"}
               </Text>
               <TextInput
+                ref={kidPinRef}
+                autoFocus
                 placeholder="New 4-digit PIN"
                 value={kidPinInput}
                 onChangeText={(t) => setKidPinInput(t.replace(/[^0-9]/g, "").slice(0, 4))}
                 keyboardType="number-pad"
-                secureTextEntry
                 style={styles.input}
               />
-              <View style={styles.buttonRow}>
+              <View style={{ flexDirection: "row", gap: 8 }}>
                 <TouchableOpacity style={[styles.btn, { flex: 1 }]} onPress={saveKidPin}>
                   <Text style={styles.btnText}>Save</Text>
                 </TouchableOpacity>
@@ -1020,46 +881,14 @@ export default function ParentDashboard() {
           </View>
         </Modal>
 
-        <Modal visible={editKidModalVisible} transparent animationType="slide">
-          <View style={styles.modalBack}>
-            <View style={styles.modalCard}>
-              <Text style={styles.modalTitle}>Edit Kid</Text>
-              <Text style={styles.modalDescriptionText2}>Update name and avatar emoji.</Text>
-              <TextInput
-                placeholder="Name"
-                value={editKidName}
-                onChangeText={setEditKidName}
-                style={styles.input}
-              />
-              <TextInput
-                placeholder="Avatar emoji"
-                value={editKidAvatar}
-                onChangeText={setEditKidAvatar}
-                style={styles.input}
-              />
-              <View style={styles.buttonRow}>
-                <TouchableOpacity style={[styles.btn, { flex: 1 }]} onPress={handleEditKid}>
-                  <Text style={styles.btnText}>Save</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.btn, { flex: 1, backgroundColor: "#F5F5FA" }]}
-                  onPress={() => setEditKidModalVisible(false)}
-                >
-                  <Text style={[styles.btnText, { color: "#1A1A2E" }]}>Cancel</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
-
         <Modal visible={penaltyModalVisible} transparent animationType="slide">
           <View style={styles.modalBack}>
             <View style={styles.penaltyModalCard}>
               <Text style={styles.penaltyModalTitle}>Apply Penalty / Alert</Text>
-              <Text style={styles.penaltyKidText}>
+              <Text style={{ color: "#666", marginBottom: 6 }}>
                 {kids.find((k) => k.id === penaltyKidId)?.name ?? "Select kid"}
               </Text>
-              <Text style={styles.penaltyDescriptionText}>
+              <Text style={{ color: "#333", marginBottom: 6 }}>
                 Deduct points from the kid&apos;s total. Use sparingly and add a short reason.
               </Text>
               <TextInput
@@ -1075,14 +904,14 @@ export default function ParentDashboard() {
                 onChangeText={setPenaltyReason}
                 style={styles.input}
               />
-              <Text style={styles.attachTaskLabel}>
+              <Text style={{ fontWeight: "700", marginTop: 8 }}>
                 Attach to task (optional)
               </Text>
               <FlatList
                 data={tasks}
                 keyExtractor={(t) => t.id}
                 horizontal
-                style={styles.taskChipsRow}
+                style={{ marginVertical: 8 }}
                 renderItem={({ item }) => (
                   <TouchableOpacity
                     onPress={() =>
@@ -1097,11 +926,11 @@ export default function ParentDashboard() {
                         : {},
                     ]}
                   >
-                    <Text style={styles.editTaskTitle}>{item.title}</Text>
+                    <Text style={{ fontWeight: "800" }}>{item.title}</Text>
                   </TouchableOpacity>
                 )}
               />
-              <View style={styles.buttonRow}>
+              <View style={{ flexDirection: "row", gap: 8 }}>
                 <TouchableOpacity
                   style={[styles.btn, { flex: 1, backgroundColor: "#e63946" }]}
                   onPress={() => {
@@ -1133,7 +962,7 @@ export default function ParentDashboard() {
                       setPenaltyModalVisible(false);
                     } catch (err) {
                       console.warn("addPenalty error", err);
-                      Alert.alert("Error", "Could not apply penalty");
+                      Alert.alert("Couldn't save", "Please try again.");
                     }
                   }}
                 >
@@ -1154,7 +983,7 @@ export default function ParentDashboard() {
           <View style={styles.modalBack}>
             <View style={styles.modalCard}>
               <Text style={styles.modalTitle}>Give Bonus</Text>
-              <Text style={styles.bonusKidText}>
+              <Text style={{ color: "#666", marginBottom: 6 }}>
                 {kids.find((k) => k.id === bonusKidId)?.name ?? "Select kid"}
               </Text>
               <TextInput
@@ -1170,7 +999,7 @@ export default function ParentDashboard() {
                 onChangeText={setBonusReason}
                 style={styles.input}
               />
-              <View style={styles.buttonRow}>
+              <View style={{ flexDirection: "row", gap: 8 }}>
                 <TouchableOpacity
                   style={[styles.bonusBtn, { flex: 1 }]}
                   onPress={() => {
@@ -1202,30 +1031,35 @@ export default function ParentDashboard() {
         <Modal visible={resetModalVisible} transparent animationType="slide">
           <View style={styles.modalBack}>
             <View style={styles.modalCard}>
-              <Text style={styles.modalTitle}>End Competition & Award Prize</Text>
-              <Text style={styles.resetModalDescription}>
-                This will reset all stars, bonuses, and penalties to zero after awarding the prize.
+              <Text style={styles.modalTitle}>End Challenge & Award Prize</Text>
+              <Text style={{ color: "#666", marginBottom: 12 }}>
+                This will reset every kid&apos;s stars, bonuses, and penalties to zero and start a
+                fresh challenge.
               </Text>
               {kids.length > 0 && (
-                <View style={styles.winnersSectionView}>
-                  <Text style={styles.competitionWinnersTitle}>🏆 Winners:</Text>
+                <View style={{ marginBottom: 12 }}>
+                  <Text style={{ fontWeight: "800", marginBottom: 8 }}>
+                    {leaders.length > 1 ? "🏆 Winners (tied):" : "🏆 Winner:"}
+                  </Text>
                   <View style={styles.winnerRow}>
                     <Text style={styles.winnerEmoji}>⭐</Text>
                     <Text style={styles.winnerText}>
-                      Most Stars: {topKidNames} ({maxStars}⭐)
+                      {leaders.length > 0
+                        ? `${leaderNames} (${leaderStars} ⭐)`
+                        : "No stars earned yet"}
                     </Text>
                   </View>
                 </View>
               )}
-              <View style={styles.buttonRowMargin}>
+              <View style={{ flexDirection: "row", gap: 8 }}>
                 <TouchableOpacity
                   style={[styles.btn, { flex: 1, backgroundColor: "#28a745" }]}
                   onPress={() => {
                     resetCompetition();
                     setResetModalVisible(false);
                     Alert.alert(
-                      "Competition Reset",
-                      "All stars, bonuses, and penalties have been reset. New competition started!",
+                      "New challenge started 🚀",
+                      "Everyone's stars are back to zero. Good luck!",
                     );
                   }}
                 >
@@ -1252,13 +1086,21 @@ export default function ParentDashboard() {
                 value={editTaskTitle}
                 onChangeText={setEditTaskTitle}
               />
-              <Text style={styles.editTaskSubtaskLabel}>
+              <Text style={{ marginTop: 16, fontWeight: "600", marginBottom: 8 }}>
                 Subtasks
               </Text>
               {editSubtasks.map((s, idx) => (
-                <View key={idx} style={styles.editTaskSubtaskRow}>
+                <View
+                  key={idx}
+                  style={{
+                    marginBottom: 8,
+                    flexDirection: "row",
+                    gap: 8,
+                    alignItems: "center",
+                  }}
+                >
                   <TextInput
-                    style={[styles.input, styles.editSubtaskInput]}
+                    style={[styles.input, { flex: 1 }]}
                     placeholder="Subtask"
                     value={s.title}
                     onChangeText={(txt) => {
@@ -1268,7 +1110,7 @@ export default function ParentDashboard() {
                     }}
                   />
                   <TextInput
-                    style={[styles.input, styles.editSubtaskStarInput]}
+                    style={[styles.input, { width: 60, textAlign: "center" }]}
                     placeholder="⭐"
                     value={s.stars}
                     onChangeText={(txt) => {
@@ -1281,7 +1123,7 @@ export default function ParentDashboard() {
                 </View>
               ))}
               <TouchableOpacity
-                style={[styles.btn, styles.addSubtaskButtonMargin]}
+                style={[styles.btn, { marginTop: 8, backgroundColor: "#007bff" }]}
                 onPress={() => {
                   const updated = [...editSubtasks, { title: "Subtask", stars: "1" }];
                   setEditSubtasks(updated);
@@ -1289,9 +1131,9 @@ export default function ParentDashboard() {
               >
                 <Text style={styles.btnText}>+ Add Subtask</Text>
               </TouchableOpacity>
-              <View style={styles.editTaskButtonRow}>
+              <View style={{ flexDirection: "row", gap: 8, marginTop: 16 }}>
                 <TouchableOpacity
-                  style={[styles.btn, styles.editTaskSaveButton]}
+                  style={[styles.btn, { flex: 1, backgroundColor: "#28a745" }]}
                   onPress={handleEditTask}
                 >
                   <Text style={styles.btnText}>Save</Text>
@@ -1307,385 +1149,280 @@ export default function ParentDashboard() {
           </View>
         </Modal>
       </ScrollView>
-
-      <Modal
-        visible={authModalVisible}
-        transparent
-        animationType="slide"
-        onShow={() => setTimeout(() => authPinInputRef.current?.focus(), 150)}
-      >
-        <View style={styles.modalBack}>
+      {/* The PIN prompt is an in-screen overlay, not a <Modal>: presenting a Modal
+          while this screen is still sliding in can freeze the app on iOS. */}
+      {authModalVisible && (
+        <View style={[StyleSheet.absoluteFill, styles.modalBack]}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>
               {parentPin ? "Enter Parent Access Code" : "Set Parent Access Code"}
             </Text>
-            <Text style={styles.modalDescriptionText2}>
+            <Text style={{ color: "#666", marginBottom: 12 }}>
               {parentPin
                 ? "Enter your 4-digit dashboard access code."
                 : "Create a 4-digit dashboard access code to protect parent access."}
             </Text>
             {parentPin ? (
               <>
-                <View style={styles.pinDotsRow}>
-                  {[0, 1, 2, 3].map((i) => (
-                    <View key={i} style={[styles.pinDot, parentPinInput.length > i && styles.pinDotFilled]} />
-                  ))}
-                </View>
                 <TextInput
-                  ref={authPinInputRef}
+                  ref={parentUnlockPinRef}
+                  autoFocus
                   placeholder="4-digit PIN"
                   value={parentPinInput}
-                  secureTextEntry={true}
                   onChangeText={(t) => setParentPinInput(t.replace(/[^0-9]/g, "").slice(0, 4))}
                   keyboardType="number-pad"
                   style={styles.input}
                 />
-                <View style={styles.buttonRow}>
-                  <TouchableOpacity
-                    style={[styles.btn, { flex: 1 }]}
-                    onPress={verifyParentPin}
-                  >
+                <View style={{ flexDirection: "row", gap: 8 }}>
+                  <TouchableOpacity style={[styles.btn, { flex: 1 }]} onPress={verifyParentPin}>
                     <Text style={styles.btnText}>Unlock</Text>
                   </TouchableOpacity>
-
                   <TouchableOpacity
-                    style={[
-                      styles.btn,
-                      {
-                        flex: 1,
-                        backgroundColor: "#ccc",
-                      },
-                    ]}
-                    onPress={() => {
-                      setAuthModalVisible(false);
-                      router.replace("/");
-                    }}
+                    style={[styles.btn, { flex: 1, backgroundColor: "#ccc" }]}
+                    onPress={() => router.back()}
                   >
-                    <Text style={[styles.btnText, { color: "#000" }]}>Cancel</Text>
+                    <Text style={[styles.btnText, { color: "#000" }]}>Back</Text>
                   </TouchableOpacity>
                 </View>
-                <TouchableOpacity
-                  style={{ marginTop: 12, alignSelf: "center" }}
-                  onPress={() => {
-                    setForgotPinModalVisible(true);
-                    setAuthModalVisible(false);
-                  }}
-                >
-                  <Text style={{ color: "#6C63FF", fontWeight: "700" }}>Forgot PIN?</Text>
-                </TouchableOpacity>
               </>
             ) : (
               <>
-                <View style={styles.pinDotsRow}>
-                  {[0, 1, 2, 3].map((i) => (
-                    <View key={i} style={[styles.pinDot, setupPin.length > i && styles.pinDotFilled]} />
-                  ))}
-                </View>
                 <TextInput
-                  ref={authPinInputRef}
+                  ref={parentSetupPinRef}
+                  autoFocus
                   placeholder="4-digit PIN"
                   value={setupPin}
                   onChangeText={(t) => setSetupPin(t.replace(/[^0-9]/g, "").slice(0, 4))}
                   keyboardType="number-pad"
-                  secureTextEntry
                   style={styles.input}
                 />
-                <View style={styles.pinDotsRow}>
-                  {[0, 1, 2, 3].map((i) => (
-                    <View key={i} style={[styles.pinDot, setupConfirmPin.length > i && styles.pinDotFilled]} />
-                  ))}
-                </View>
                 <TextInput
                   placeholder="Confirm 4-digit PIN"
                   value={setupConfirmPin}
                   onChangeText={(t) => setSetupConfirmPin(t.replace(/[^0-9]/g, "").slice(0, 4))}
                   keyboardType="number-pad"
-                  secureTextEntry
                   style={styles.input}
                 />
-                <View style={styles.buttonRow}>
-                  <TouchableOpacity
-                    style={[styles.btn, { flex: 1 }]}
-                    onPress={saveParentPin}
-                  >
+                <View style={{ flexDirection: "row", gap: 8 }}>
+                  <TouchableOpacity style={[styles.btn, { flex: 1 }]} onPress={saveParentPin}>
                     <Text style={styles.btnText}>Save PIN</Text>
                   </TouchableOpacity>
-
                   <TouchableOpacity
-                    style={[
-                      styles.btn,
-                      {
-                        flex: 1,
-                        backgroundColor: "#ccc",
-                      },
-                    ]}
-                    onPress={() => {
-                      setAuthModalVisible(false);
-                      router.replace("/");
-                    }}
+                    style={[styles.btn, { flex: 1, backgroundColor: "#ccc" }]}
+                    onPress={() => router.back()}
                   >
-                    <Text style={[styles.btnText, { color: "#000" }]}>Cancel</Text>
+                    <Text style={[styles.btnText, { color: "#000" }]}>Back</Text>
                   </TouchableOpacity>
                 </View>
               </>
             )}
           </View>
         </View>
-      </Modal>
-    </SafeAreaView>
+      )}
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
-  safeAreaContainer: { flex: 1, backgroundColor: '#F5F5FA' },
-  scrollViewContent: { paddingBottom: 40 },
-  container: { flex: 1, padding: 16, backgroundColor: '#F5F5FA' },
+const CARD = {
+  backgroundColor: colors.card,
+  borderRadius: radii.lg,
+  ...shadows.sm,
+};
 
-  headerCard: {
-    backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 24,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
+const PILL_BTN = {
+  paddingVertical: spacing.md,
+  paddingHorizontal: spacing.lg,
+  borderRadius: radii.md,
+  marginTop: spacing.sm,
+  marginRight: spacing.sm,
+  minWidth: 98,
+  alignItems: "center" as const,
+};
+
+const styles = StyleSheet.create({
+  container: { flex: 1, padding: spacing.xl, backgroundColor: colors.bg },
+  headerCard: { ...CARD, padding: spacing.lg, marginBottom: spacing.lg },
+  title: { fontSize: 26, fontWeight: "800", color: colors.text },
+  subtitle: { color: colors.textMuted, marginTop: spacing.xs },
+  summaryRow: {
+    flexDirection: "row",
+    marginTop: spacing.lg,
+    justifyContent: "space-between",
   },
-  title: { fontSize: 22, fontWeight: '700', color: '#1A1A2E', marginBottom: 4 },
-  subtitle: { color: '#8A8F98', fontSize: 13, marginBottom: 16 },
-  summaryRow: { flexDirection: 'row', gap: 10, marginBottom: 4 },
-  summaryTile: {
-    flex: 1,
-    borderRadius: 16,
-    padding: 12,
-    alignItems: 'center',
+  summaryTile: { alignItems: "center", flex: 1 },
+  tileNumber: { fontSize: 22, fontWeight: "800", color: colors.primary },
+  tileLabel: { color: colors.textMuted, fontSize: 12, marginTop: spacing.xs },
+  leaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    marginTop: spacing.md,
+    padding: spacing.md,
+    borderRadius: radii.md,
+    backgroundColor: palette.starSoft,
   },
-  tileNumber: { fontSize: 20, fontWeight: '700', color: '#1A1A2E' },
-  tileLabel: { color: '#8A8F98', fontSize: 11, marginTop: 3, textAlign: 'center' },
-  actionsRow: { flexDirection: 'row', gap: 10, marginTop: 16 },
+  leaderEmoji: { fontSize: 22 },
+  leaderLabel: { fontSize: 11, fontWeight: "700", color: "#8A5B00", letterSpacing: 0.4 },
+  leaderName: { fontSize: 15, fontWeight: "800", color: colors.text, marginTop: 2 },
+  leaderChevron: { fontSize: 22, color: colors.textFaint },
+  crownedAvatar: { marginTop: spacing.lg },
+  actionsRow: { flexDirection: "row", gap: spacing.md, marginTop: spacing.lg },
   primaryBtn: {
     flex: 1,
-    backgroundColor: '#6C63FF',
-    padding: 12,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: colors.primary,
+    padding: spacing.md,
+    borderRadius: radii.md,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  primaryBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  primaryBtnText: { color: colors.onPrimary, fontWeight: "800" },
   ghostBtn: {
     flex: 1,
-    backgroundColor: '#FFF3DC',
-    padding: 12,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: palette.accentSoft,
+    padding: spacing.md,
+    borderRadius: radii.md,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  ghostBtnText: { color: '#FB8500', fontWeight: '700', fontSize: 14 },
-
-  sectionCard: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 14,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
+  ghostBtnText: { color: palette.accentDark, fontWeight: "800" },
+  sectionCard: { ...CARD, padding: spacing.lg, marginBottom: spacing.md },
+  sectionTitle: { fontWeight: "800", marginBottom: spacing.md, fontSize: 16, color: colors.text },
+  kidCard: { ...CARD, padding: spacing.lg, marginBottom: spacing.md },
+  kidHeaderRow: { flexDirection: "row", alignItems: "center" },
+  kidNameLabel: { color: colors.textFaint, fontSize: 11, marginBottom: spacing.xs },
+  kidName: { fontWeight: "800", fontSize: 20, color: colors.text },
+  kidStatsGrid: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: spacing.lg,
   },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: '#1A1A2E', marginBottom: 14 },
-
-  kidCard: {
-    backgroundColor: '#F8F8FE',
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#EDEDF5',
+  kidStatBlock: { flex: 1, minWidth: 0 },
+  kidStatLabel: { color: colors.textMuted, fontSize: 11, marginBottom: spacing.xs },
+  kidStatValue: { fontWeight: "800", fontSize: 16, color: colors.text },
+  kidActions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    marginTop: spacing.md,
   },
-  kidHeaderRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  kidAvatarBg: {
-    width: 50, height: 50, borderRadius: 25,
-    backgroundColor: '#EDEAFF',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  kidAvatar: { fontSize: 26 },
-  kidNameContainer: { marginLeft: 12, flex: 1, minWidth: 0 },
-  kidNameLabel: { color: '#8A8F98', fontSize: 11, marginBottom: 2 },
-  kidName: { fontWeight: '700', fontSize: 17, color: '#1A1A2E' },
-  kidStatsGrid: { flexDirection: 'row', gap: 8 },
-  kidStatBlock: {
-    flex: 1,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 10,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#EDEDF5',
-  },
-  kidStatLabel: { fontSize: 10, color: '#8A8F98', marginBottom: 4, textAlign: 'center' },
-  kidStatValue: { fontSize: 15, fontWeight: '700', color: '#1A1A2E' },
-  kidActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
-  smallEditBtn: {
-    backgroundColor: '#E3FBF3',
-    paddingVertical: 8, paddingHorizontal: 14,
-    borderRadius: 10,
-  },
-  smallEditBtnText: { color: '#06D6A0', fontWeight: '600', fontSize: 13 },
-  smallPrimaryBtn: {
-    backgroundColor: '#EDEAFF',
-    paddingVertical: 8, paddingHorizontal: 14,
-    borderRadius: 10,
-  },
-  smallPrimaryBtnText: { color: '#6C63FF', fontWeight: '600', fontSize: 13 },
-  smallPenaltyBtn: {
-    backgroundColor: '#FFE8E8',
-    paddingVertical: 8, paddingHorizontal: 14,
-    borderRadius: 10,
-  },
-  smallPenaltyBtnText: { color: '#FF5D5D', fontWeight: '600', fontSize: 13 },
-  smallResetPinBtn: {
-    backgroundColor: '#FFF3DC',
-    paddingVertical: 8, paddingHorizontal: 14,
-    borderRadius: 10,
-  },
-  smallResetPinBtnText: { color: '#FB8500', fontWeight: '600', fontSize: 13 },
-  smallDeleteBtn: {
-    backgroundColor: '#FFE8E8',
-    paddingVertical: 8, paddingHorizontal: 14,
-    borderRadius: 10,
-  },
-  smallDeleteBtnText: { color: '#D62828', fontWeight: '600', fontSize: 13 },
-
+  smallPrimaryBtn: { ...PILL_BTN, backgroundColor: colors.primary },
+  smallPrimaryBtnText: { color: colors.onPrimary, fontWeight: "800", fontSize: 13 },
+  smallPenaltyBtn: { ...PILL_BTN, backgroundColor: colors.danger },
+  smallPenaltyBtnText: { color: "#fff", fontWeight: "800", fontSize: 13 },
+  smallResetPinBtn: { ...PILL_BTN, backgroundColor: palette.warning },
+  smallResetPinBtnText: { color: "#4A3200", fontWeight: "800", fontSize: 13 },
+  smallDeleteBtn: { ...PILL_BTN, backgroundColor: "#C22E51" },
+  smallDeleteBtnText: { color: "#fff", fontWeight: "800", fontSize: 13 },
   taskCard: {
-    backgroundColor: '#F8F8FE',
-    borderRadius: 14,
-    marginBottom: 10,
-    flexDirection: 'row',
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#EDEDF5',
+    backgroundColor: palette.infoSoft,
+    padding: spacing.md,
+    borderRadius: radii.md,
+    marginBottom: spacing.md,
   },
-  taskAccentBar: { width: 4, backgroundColor: '#6C63FF' },
-  taskCardBody: { flex: 1, padding: 12 },
-  taskHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  taskTitleText: { fontWeight: '700', fontSize: 15, color: '#1A1A2E', flex: 1 },
-  actionButtonRow: { flexDirection: 'row', gap: 6 },
   actionButton: {
-    width: 32, height: 32,
-    borderRadius: 10,
-    backgroundColor: '#6C63FF',
-    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.primary,
+    paddingVertical: 6,
+    paddingHorizontal: spacing.md,
+    borderRadius: radii.sm,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  editDeleteButtonText: { fontSize: 14 },
-  subtaskCountText: { color: '#8A8F98', fontSize: 12, marginBottom: 8 },
-  subtasksRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   subtaskChip: {
-    backgroundColor: '#fff',
-    paddingVertical: 5, paddingHorizontal: 10,
-    borderRadius: 20,
-    flexDirection: 'row', alignItems: 'center',
-    borderWidth: 1, borderColor: '#EDEDF5',
+    backgroundColor: colors.card,
+    paddingVertical: 6,
+    paddingHorizontal: spacing.md,
+    borderRadius: radii.pill,
+    flexDirection: "row",
+    alignItems: "center",
+    marginRight: spacing.sm,
+    marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  subtaskTitleText: { color: '#1A1A2E', fontSize: 12, fontWeight: '500' },
-  subtaskStarText: { marginLeft: 6, color: '#FB8500', fontSize: 12 },
-
-  section: { marginTop: 20, fontWeight: '700', fontSize: 15, color: '#1A1A2E' },
-  todayKidCard: {
-    backgroundColor: '#F8F8FE',
-    padding: 12, borderRadius: 14, marginBottom: 10,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    borderWidth: 1, borderColor: '#EDEDF5',
+  modalBack: {
+    flex: 1,
+    justifyContent: "center",
+    backgroundColor: colors.overlay,
   },
-  todayKidRow: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  todayKidAvatar: { fontSize: 30 },
-  todayKidInfoContainer: { marginLeft: 12, flex: 1 },
-  todayKidName: { fontWeight: '700', fontSize: 15, color: '#1A1A2E' },
-  completionCountText: { color: '#8A8F98', fontSize: 12, marginTop: 2 },
-  viewDetailsText: { color: '#6C63FF', fontWeight: '600', fontSize: 13 },
-  todayCompletionPlaceholder: { padding: 12 },
-  emptyStateText: { color: '#8A8F98', fontSize: 14 },
-
-  competitionCard: {
-    backgroundColor: '#F8F8FE',
-    padding: 14, borderRadius: 14, marginBottom: 10,
-    borderWidth: 1, borderColor: '#EDEDF5',
+  modalCard: {
+    margin: spacing.xl,
+    backgroundColor: colors.card,
+    padding: spacing.xl,
+    borderRadius: radii.xl,
+    ...shadows.lg,
   },
-  competitionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  competitionTitle: { fontWeight: '700', fontSize: 14, color: '#1A1A2E', flex: 1 },
-  competitionDate: { fontSize: 11, color: '#8A8F98' },
-  winnerInfoContainer: { marginTop: 6 },
-  winnerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
-  winnerEmoji: { fontSize: 18, marginRight: 8 },
-  winnerText: { fontWeight: '600', fontSize: 13, color: '#1A1A2E' },
-  secondPlaceText: { fontWeight: '500', fontSize: 13, color: '#8A8F98', marginTop: 2 },
-  rankingsText: { fontSize: 12, color: '#8A8F98', marginTop: 6 },
-
-  pinDotsRow: { flexDirection: 'row', gap: 12, justifyContent: 'center', marginBottom: 14 },
-  pinDot: { width: 16, height: 16, borderRadius: 8, backgroundColor: '#EDEDF5', borderWidth: 2, borderColor: '#E0E0E8' },
-  pinDotFilled: { backgroundColor: '#6C63FF', borderColor: '#6C63FF' },
-  modalBack: { flex: 1, justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.45)' },
-  authOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.45)', zIndex: 9999 },
-  authModalCard: { width: '90%', maxWidth: 420 },
-  modalCard: { margin: 20, backgroundColor: '#fff', padding: 22, borderRadius: 24 },
-  modalTitle: { fontSize: 18, fontWeight: '700', marginBottom: 14, color: '#1A1A2E' },
+  modalTitle: { fontSize: 20, fontWeight: "800", marginBottom: spacing.md, color: colors.text },
   input: {
-    backgroundColor: '#F5F5FA',
-    borderRadius: 14, padding: 13,
-    marginBottom: 10, fontSize: 15,
-    borderWidth: 1, borderColor: '#EDEDF5',
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    backgroundColor: colors.inputBg,
+    padding: spacing.md,
+    borderRadius: radii.md,
+    marginBottom: spacing.sm,
+    color: colors.text,
   },
-  penaltyBtn: { backgroundColor: '#FF5D5D', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  penaltyBtnText: { color: '#fff', fontWeight: '600' },
-  penaltyModalCard: { margin: 20, backgroundColor: '#fff', padding: 22, borderRadius: 24, borderWidth: 1.5, borderColor: '#FFE8E8' },
-  penaltyModalTitle: { fontSize: 18, fontWeight: '700', marginBottom: 8, color: '#D62828' },
-  btn: { marginTop: 16, backgroundColor: '#6C63FF', padding: 14, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  btnText: { color: '#fff', textAlign: 'center', fontWeight: '600' },
-  bonusBtn: { marginTop: 16, backgroundColor: '#06D6A0', padding: 14, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  buttonRow: { flexDirection: 'row', gap: 10, marginTop: 14 },
-  buttonRowMargin: { flexDirection: 'row', gap: 10, marginTop: 14 },
-  buttonRowMarginLarge: { flexDirection: 'row', gap: 10, marginTop: 16 },
-  buttonRowGap: { flexDirection: 'row', gap: 10 },
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-
-  modalDescriptionText: { color: '#8A8F98', marginBottom: 8 },
-  modalDescriptionText2: { color: '#8A8F98', marginBottom: 14, fontSize: 13 },
-  modalLabelText: { color: '#1A1A2E', marginBottom: 6 },
-  penaltyKidText: { color: '#8A8F98', marginBottom: 8, fontSize: 14 },
-  penaltyDescriptionText: { color: '#1A1A2E', marginBottom: 8, fontSize: 13 },
-  attachTaskLabel: { fontWeight: '600', marginTop: 10, marginBottom: 6, color: '#1A1A2E' },
-  taskChipsRow: { marginVertical: 8 },
-  editTaskTitle: { fontWeight: '600', fontSize: 13 },
-  bonusKidText: { color: '#8A8F98', marginBottom: 8, fontSize: 14 },
-  resetModalDescription: { color: '#8A8F98', marginBottom: 14, fontSize: 13 },
-  winnersSectionView: { marginBottom: 14 },
-  competitionWinnersTitle: { fontWeight: '700', marginBottom: 8, color: '#1A1A2E' },
-  editTaskSubtaskLabel: { marginTop: 14, fontWeight: '600', marginBottom: 8, color: '#1A1A2E' },
-  editTaskSubtaskRow: { marginBottom: 8, flexDirection: 'row', gap: 8, alignItems: 'center' },
-  editSubtaskInput: { flex: 1 },
-  editSubtaskStarInput: { width: 60, textAlign: 'center' },
-  addSubtaskButtonMargin: { marginTop: 8, backgroundColor: '#6C63FF' },
-  editTaskButtonRow: { flexDirection: 'row', gap: 10, marginTop: 16 },
-  editTaskSaveButton: { flex: 1, backgroundColor: '#06D6A0' },
-  editTaskCancelButton: { flex: 1, backgroundColor: '#F5F5FA' },
-  subtaskInputRow: { marginBottom: 8, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  subtaskInputFlex: { flex: 1 },
-  starInputWidth: { width: 64, textAlign: 'center' },
-  cancelButton: { flex: 1, backgroundColor: '#F5F5FA' },
-  cancelButtonText: { color: '#1A1A2E' },
-  saveButton: { flex: 1, backgroundColor: '#06D6A0' },
-  addSubtaskButton: { marginTop: 8, backgroundColor: '#6C63FF' },
-  endCompetitionBtn: { backgroundColor: 'rgba(241,127,13,0.85)', marginTop: 12 },
-  resetPinBtnMargin: { marginTop: 12 },
-  resetPinBtnMargin2: { marginTop: 12 },
-  kidActionButtonsContainer: { marginTop: 8 },
-  pastCompetitionsMargin: { marginTop: 12 },
-  winnerSectionRow: { marginBottom: 12 },
-  winnerListText: { fontWeight: '700', marginBottom: 8 },
-  competitionDateText: { color: '#8A8F98', fontSize: 12 },
-  editTaskModalMargin: { marginBottom: 8 },
-  winnersSectionMargin: { marginBottom: 12 },
-  winnersTitle: { fontWeight: '700', marginBottom: 8 },
+  penaltyBtn: {
+    backgroundColor: colors.danger,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radii.md,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  penaltyBtnText: { color: "#fff", fontWeight: "800" },
+  penaltyModalCard: {
+    margin: spacing.xl,
+    backgroundColor: colors.card,
+    padding: spacing.xl,
+    borderRadius: radii.xl,
+    borderWidth: 1,
+    borderColor: palette.dangerSoft,
+    ...shadows.lg,
+  },
+  penaltyModalTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    marginBottom: spacing.sm,
+    color: colors.danger,
+  },
+  btn: {
+    marginTop: spacing.lg,
+    backgroundColor: colors.primary,
+    padding: spacing.md,
+    borderRadius: radii.md,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  btnText: { color: colors.onPrimary, textAlign: "center", fontWeight: "700" },
+  bonusBtn: {
+    marginTop: spacing.lg,
+    backgroundColor: colors.primary,
+    padding: spacing.md,
+    borderRadius: radii.md,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  section: { marginTop: spacing.xl, fontWeight: "800", fontSize: 16, color: colors.text },
+  todayKidCard: {
+    ...CARD,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  todayKidName: { fontWeight: "800", fontSize: 16, color: colors.text },
+  competitionCard: { ...CARD, padding: spacing.lg, marginBottom: spacing.md },
+  competitionTitle: { fontWeight: "800", fontSize: 16, color: colors.text },
+  competitionDate: { fontSize: 12, color: colors.textMuted },
+  winnerRow: { flexDirection: "row", alignItems: "center", marginBottom: spacing.xs },
+  winnerEmoji: { fontSize: 20, marginRight: spacing.sm },
+  winnerText: { fontWeight: "700", fontSize: 14, color: palette.accentDark },
+  secondPlaceText: {
+    fontWeight: "600",
+    fontSize: 14,
+    color: colors.textMuted,
+    marginTop: spacing.xs,
+  },
+  rankingsText: { fontSize: 12, color: colors.textMuted, marginTop: spacing.sm },
 });
-

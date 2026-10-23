@@ -1,17 +1,18 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs, usePathname } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { colors, fontFamilyForWeight, palette, radii, shadows } from "@/constants/theme";
 
 const TABS = [
-  { name: "index",   segment: "",        label: "Home",    icon: "home-outline",   activeIcon: "home",   color: "#6C63FF" },
-  { name: "explore", segment: "explore", label: "Explore", icon: "rocket-outline", activeIcon: "rocket", color: "#FB8500" },
-  { name: "parent",  segment: "parent",  label: "Parent",  icon: "ribbon-outline", activeIcon: "ribbon", color: "#06D6A0" },
-];
+  { name: "index", label: "Home", icon: "home-outline", activeIcon: "home", color: palette.primary },
+  { name: "explore", label: "Explore", icon: "rocket-outline", activeIcon: "rocket", color: palette.accent },
+  { name: "parent", label: "Parent", icon: "ribbon-outline", activeIcon: "ribbon", color: palette.success },
+] as const;
 
 function getActiveIndex(pathname: string): number {
   if (pathname.includes("explore")) return 1;
-  if (pathname.includes("parent"))  return 2;
+  if (pathname.includes("parent")) return 2;
   return 0;
 }
 
@@ -29,20 +30,18 @@ function TabButton({ props, focused, label, icon, activeIcon, color }: {
         <Ionicons
           name={(focused ? activeIcon : icon) as any}
           size={22}
-          color={focused ? "#fff" : "#B0B0C0"}
+          color={focused ? colors.onPrimary : colors.textFaint}
         />
-        {focused && (
-          <Text style={styles.label}>{label}</Text>
-        )}
+        {focused && <Text style={styles.label}>{label}</Text>}
       </View>
     </Pressable>
   );
 }
 
 export default function TabLayout() {
-  const pathname  = usePathname();
+  const pathname = usePathname();
   const activeIdx = getActiveIndex(pathname);
-  const insets    = useSafeAreaInsets();
+  const insets = useSafeAreaInsets();
 
   const tabBarHeight = 56 + insets.bottom;
 
@@ -83,34 +82,28 @@ export default function TabLayout() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: "#fff",
+    backgroundColor: colors.card,
     paddingTop: 8,
     borderTopWidth: 0,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    shadowColor: "#000",
+    borderTopLeftRadius: radii.xl,
+    borderTopRightRadius: radii.xl,
+    ...shadows.lg,
     shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.07,
-    shadowRadius: 16,
-    elevation: 14,
   },
-  tabBtn: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  tabBtn: { flex: 1, alignItems: "center", justifyContent: "center" },
   pill: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 9,
     paddingHorizontal: 16,
-    borderRadius: 20,
+    borderRadius: radii.lg,
     gap: 6,
   },
   label: {
+    fontFamily: fontFamilyForWeight("700"),
     fontSize: 13,
-    fontWeight: "800",
-    color: "#fff",
+    fontWeight: "700",
+    color: colors.onPrimary,
   },
 });

@@ -1,33 +1,33 @@
 {
   "expo": {
-    "name": "Star Kid",
+    "name": "StarBo",
     "slug": "star-kid",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/images/star-icon.png",
+    "version": "1.0.1",
+    "orientation": "default",
     "splash": {
-      "image": "./assets/images/star-icon.png",
-      "resizeMode": "cover",
-      "backgroundColor": "#87CEEB"
+      "image": "./assets/images/starbo-logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#3B1F8F"
     },
+    "icon": "./assets/images/starbo-icon.png",
     "scheme": "starkid",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.mi.starkid",
+      "bundleIdentifier": "com.mi.bstar",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#ffffff",
-        "foregroundImage": "./assets/images/star-icon.png"
+        "foregroundImage": "./assets/images/starbo-adaptive-fg.png",
+        "backgroundColor": "#3B1F8F"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.mi.starkid"
+      "package": "com.mi.bstar"
     },
     "web": {
       "output": "static",
@@ -38,9 +38,18 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/star-icon.png",
-          "resizeMode": "cover",
-          "backgroundColor": "#87CEEB"
+          "backgroundColor": "#3B1F8F",
+          "image": "./assets/images/starbo-logo.png",
+          "imageWidth": 240
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
+          }
         }
       ]
     ],

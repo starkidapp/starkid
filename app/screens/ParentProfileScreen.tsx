@@ -1,34 +1,40 @@
+import { Ionicons } from "@expo/vector-icons";
+import { AppText, Button, Card, Dialog, Screen, TextField } from "@/components/ui";
+import { colors, palette, radii, spacing } from "@/constants/theme";
 import { auth, db } from "@/lib/firebase/config";
 import { router, useLocalSearchParams } from "expo-router";
 import {
   EmailAuthProvider,
+  deleteUser,
   reauthenticateWithCredential,
   signOut,
   updatePassword,
 } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { deleteDoc, doc, getDoc, setDoc } from "firebase/firestore";
+import { friendlyErrorMessage } from "../utils/errorUtils";
 import { alertNetworkError, checkInternet, isNetworkError } from "../utils/netUtils";
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  Alert,
-  AppState,
-  FlatList,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Alert, AppState, Pressable, StyleSheet, View } from "react-native";
 import ScreenHeader from "../components/ScreenHeader";
 import { useKids } from "../context/KidContext";
-import { capitalizeWords } from "../utils/textUtils";
+import { useLoading } from "../context/LoadingContext";
+import { capitalizeWords, joinNames } from "../utils/textUtils";
 
 export default function ParentProfileScreen() {
   const { fromParentDashboard } = useLocalSearchParams();
-  const { kids, updateKid } = useKids();
+  const { kids, updateKid, getChallengeStars, getLeaderIds } = useKids();
+
+  // Kids tied on the most stars lead together.
+  const leaderIds = getLeaderIds();
+  const leaders = kids.filter((k) => leaderIds.includes(k.id));
+  const leader =
+    leaders.length > 0
+      ? {
+          name: joinNames(leaders.map((k) => capitalizeWords(k.name))),
+          stars: getChallengeStars(leaders[0].id),
+        }
+      : null;
+  const { showLoading, hideLoading } = useLoading();
   const [parentName, setParentName] = useState("");
   const [email, setEmail] = useState(auth.currentUser?.email ?? "");
   const [currentPassword, setCurrentPassword] = useState("");
@@ -46,6 +52,9 @@ export default function ParentProfileScreen() {
   const [savingParentName, setSavingParentName] = useState(false);
   const [savingParentPin, setSavingParentPin] = useState(false);
   const [kidPins, setKidPins] = useState<Record<string, string>>({});
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   useEffect(() => {
     const currentUser = auth.currentUser;
@@ -55,6 +64,7 @@ export default function ParentProfileScreen() {
     }
 
     const loadProfile = async () => {
+      showLoading();
       try {
         const docRef = doc(db, "parents", currentUser.uid);
         const docSnap = await getDoc(docRef);
@@ -68,6 +78,7 @@ export default function ParentProfileScreen() {
         console.error("Unable to load parent profile:", error);
       } finally {
         setInitialLoadComplete(true);
+        hideLoading();
       }
     };
 
@@ -126,24 +137,26 @@ export default function ParentProfileScreen() {
     const currentUser = auth.currentUser;
     if (!currentUser) return;
     if (!canSaveParentName) {
-      Alert.alert("Validation", "Please enter a parent name.");
+      Alert.alert("Missing name", "Please enter your name.");
       return;
     }
 
     if (!(await checkInternet())) return;
     setSavingParentName(true);
+    showLoading();
     try {
       await setDoc(
         doc(db, "parents", currentUser.uid),
         { parentName: parentName.trim(), email: currentUser.email },
         { merge: true },
       );
-      Alert.alert("Saved", "Parent profile updated.");
+      Alert.alert("Saved ✅", "Your name has been updated.");
     } catch (error: any) {
       console.error("Profile save failed:", error);
-      if (isNetworkError(error)) { alertNetworkError(); } else { Alert.alert("Save failed", error.message || "Unable to save profile."); }
+      if (isNetworkError(error)) { alertNetworkError(); } else { Alert.alert("Couldn't save", friendlyErrorMessage(error, "Please try again.")); }
     } finally {
       setSavingParentName(false);
+      hideLoading();
     }
   };
 
@@ -155,17 +168,18 @@ export default function ParentProfileScreen() {
     }
 
     if (!currentPassword || !newPassword || !confirmPassword) {
-      Alert.alert("Required", "Please fill all password fields.");
+      Alert.alert("Missing details", "Please fill in all the password boxes.");
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      Alert.alert("Validation", "New passwords do not match.");
+      Alert.alert("Passwords don't match", "Please type the same new password in both boxes.");
       return;
     }
 
     if (!(await checkInternet())) return;
     setSavingPassword(true);
+    showLoading();
     try {
       const credential = EmailAuthProvider.credential(
         user.email ?? "",
@@ -176,12 +190,13 @@ export default function ParentProfileScreen() {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-      Alert.alert("Success", "Password updated successfully.");
+      Alert.alert("Done ✅", "Your password has been changed.");
     } catch (error: any) {
       console.error("Password update failed:", error);
-      if (isNetworkError(error)) { alertNetworkError(); } else { Alert.alert("Password update failed", error.message || "Unable to update password."); }
+      if (isNetworkError(error)) { alertNetworkError(); } else { Alert.alert("Couldn't change password", error?.code === "auth/invalid-credential" || error?.code === "auth/wrong-password" ? "Your current password is not correct. Please try again." : friendlyErrorMessage(error, "Please try again.")); }
     } finally {
       setSavingPassword(false);
+      hideLoading();
     }
   };
 
@@ -193,17 +208,18 @@ export default function ParentProfileScreen() {
     }
 
     if (!/^[0-9]{4}$/.test(newParentPin)) {
-      Alert.alert("Validation", "PIN must be exactly 4 digits.");
+      Alert.alert("Check the PIN", "The PIN must be 4 numbers.");
       return;
     }
 
     if (newParentPin !== confirmParentPin) {
-      Alert.alert("Validation", "PINs do not match.");
+      Alert.alert("PINs don't match", "Please type the same PIN in both boxes.");
       return;
     }
 
     if (!(await checkInternet())) return;
     setSavingParentPin(true);
+    showLoading();
 
     try {
       await setDoc(
@@ -214,12 +230,13 @@ export default function ParentProfileScreen() {
       setParentPin(newParentPin);
       setNewParentPin("");
       setConfirmParentPin("");
-      Alert.alert("Saved", "Parent access code updated.");
+      Alert.alert("Saved ✅", "Your parent PIN has been changed.");
     } catch (error: any) {
       console.error("Parent PIN save failed:", error);
-      if (isNetworkError(error)) { alertNetworkError(); } else { Alert.alert("Save failed", error.message || "Unable to update PIN."); }
+      if (isNetworkError(error)) { alertNetworkError(); } else { Alert.alert("Couldn't save", friendlyErrorMessage(error, "Please try again.")); }
     } finally {
       setSavingParentPin(false);
+      hideLoading();
     }
   };
 
@@ -235,9 +252,9 @@ export default function ParentProfileScreen() {
     });
 
     if (changed) {
-      Alert.alert("Saved", "Kid pins have been updated.");
+      Alert.alert("Saved ✅", "The kids' PINs have been changed.");
     } else {
-      Alert.alert("No changes", "No kid PIN changes were detected.");
+      Alert.alert("Nothing to save", "You didn't change any PIN.");
     }
   };
 
@@ -247,318 +264,327 @@ export default function ParentProfileScreen() {
       setAuthModalVisible(false);
       setParentPinInputAttempt("");
     } else {
-      Alert.alert("Incorrect code", "Please try again.");
+      Alert.alert("Wrong PIN", "That PIN is not correct. Please try again.");
       setParentPinInputAttempt("");
     }
   };
 
   const handleSignOut = async () => {
-    await signOut(auth);
-    router.replace("/screens/LoginScreen");
+    showLoading();
+    try {
+      await signOut(auth);
+      router.replace("/screens/LoginScreen");
+    } finally {
+      hideLoading();
+    }
   };
 
+  const closeDeleteModal = () => {
+    setDeleteModalVisible(false);
+    setDeletePassword("");
+  };
+
+  const deleteAccount = async () => {
+    const user = auth.currentUser;
+    if (!user) {
+      Alert.alert("Not signed in", "Please sign in again.");
+      return;
+    }
+
+    if (!deletePassword) {
+      Alert.alert("Missing password", "Please enter your password to continue.");
+      return;
+    }
+
+    if (!(await checkInternet())) return;
+    setDeletingAccount(true);
+    showLoading();
+    try {
+      const credential = EmailAuthProvider.credential(
+        user.email ?? "",
+        deletePassword,
+      );
+      await reauthenticateWithCredential(user, credential);
+      await deleteDoc(doc(db, "parents", user.uid));
+      await deleteUser(user);
+      closeDeleteModal();
+      Alert.alert("Account deleted", "Your account and all your family's data have been removed.");
+      router.replace("/screens/LoginScreen");
+    } catch (error: any) {
+      console.error("Account deletion failed:", error);
+      if (isNetworkError(error)) { alertNetworkError(); } else { Alert.alert("Couldn't delete account", error?.code === "auth/invalid-credential" || error?.code === "auth/wrong-password" ? "Your password is not correct. Please try again." : friendlyErrorMessage(error, "Please try again.")); }
+    } finally {
+      setDeletingAccount(false);
+      hideLoading();
+    }
+  };
+
+  const passwordMismatch =
+    confirmPassword.length > 0 && newPassword !== confirmPassword;
+  const pinMismatch =
+    confirmParentPin.length > 0 && newParentPin !== confirmParentPin;
+
   return (
-    <SafeAreaView style={styles.screen}>
-      <ScreenHeader title="Parent Profile" />
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.content}
-      >
+    <View style={styles.screen}>
+      <ScreenHeader
+        title="Parent Profile"
+        right={
+          leader ? (
+            <Pressable
+              onPress={() => router.push("/screens/LeaderboardScreen")}
+              style={({ pressed }) => [styles.leaderChip, pressed && { opacity: 0.7 }]}
+            >
+              <Ionicons name="trophy" size={13} color={palette.accentDark} />
+              <AppText variant="label" color={palette.accentDark} numberOfLines={1}>
+                {`${leader.name} · ${leader.stars}★`}
+              </AppText>
+            </Pressable>
+          ) : undefined
+        }
+      />
+      <Screen scroll topInset={false} contentContainerStyle={styles.content}>
         <View style={styles.profileHeader}>
-          <View style={styles.profileAvatarCircle}>
-            <Text style={styles.profileAvatarText}>👤</Text>
+          <View style={styles.avatarCircle}>
+            <AppText style={styles.avatarText}>👤</AppText>
           </View>
-          <Text style={styles.profileTitle}>Parent Profile</Text>
-          <Text style={styles.profileSubtitle}>{email}</Text>
+          <AppText variant="heading">Parent Profile</AppText>
+          <AppText variant="caption" color="textMuted">
+            {email}
+          </AppText>
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Profile Info</Text>
-          <Text style={styles.label}>Parent Name</Text>
-          <TextInput
+        <Card style={styles.card}>
+          <AppText variant="subtitle" style={styles.cardTitle}>
+            Profile Info
+          </AppText>
+          <TextField
+            label="Parent name"
             value={parentName}
             onChangeText={setParentName}
             placeholder="Enter parent name"
-            style={styles.input}
+            leftIcon="person-outline"
           />
-          <Text style={styles.label}>Email</Text>
-          <TextInput
-            value={email}
-            editable={false}
-            style={[styles.input, styles.disabledInput]}
-          />
-          <TouchableOpacity
-            style={[styles.button, !canSaveParentName && styles.disabledButton]}
-            disabled={!canSaveParentName || savingParentName}
+          <TextField label="Email" value={email} editable={false} leftIcon="mail-outline" />
+          <Button
+            title={savingParentName ? "Saving…" : "Save Profile"}
             onPress={saveParentName}
-          >
-            <Text style={styles.buttonText}>
-              {savingParentName ? "Saving..." : "Save Profile"}
-            </Text>
-          </TouchableOpacity>
-        </View>
+            loading={savingParentName}
+            disabled={!canSaveParentName}
+            fullWidth
+          />
+        </Card>
 
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Change Password</Text>
-          <TextInput
+        <Card style={styles.card}>
+          <AppText variant="subtitle" style={styles.cardTitle}>
+            Change Password
+          </AppText>
+          <TextField
+            label="Current password"
             value={currentPassword}
             onChangeText={setCurrentPassword}
             placeholder="Current password"
-            secureTextEntry
-            style={styles.input}
+            secureToggle
+            leftIcon="lock-closed-outline"
           />
-          <TextInput
+          <TextField
+            label="New password"
             value={newPassword}
             onChangeText={setNewPassword}
             placeholder="New password"
-            secureTextEntry
-            style={styles.input}
+            secureToggle
+            leftIcon="lock-closed-outline"
           />
-          <TextInput
+          <TextField
+            label="Confirm new password"
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             placeholder="Confirm new password"
-            secureTextEntry
-            style={styles.input}
+            secureToggle
+            leftIcon="lock-closed-outline"
+            error={passwordMismatch ? "Passwords do not match" : undefined}
           />
-          <TouchableOpacity
-            style={[styles.button, styles.passwordButton]}
-            disabled={savingPassword}
+          <Button
+            title={savingPassword ? "Updating…" : "Update Password"}
+            variant="secondary"
             onPress={changePassword}
-          >
-            <Text style={styles.buttonText}>
-              {savingPassword ? "Updating..." : "Update Password"}
-            </Text>
-          </TouchableOpacity>
-        </View>
+            loading={savingPassword}
+            fullWidth
+          />
+        </Card>
 
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Parent Access Code</Text>
-          <Text style={styles.subtitleText}>
+        <Card style={styles.card}>
+          <AppText variant="subtitle" style={styles.cardTitle}>
+            Parent Access Code
+          </AppText>
+          <AppText variant="caption" color="textMuted" style={styles.cardHint}>
             {parentPin
               ? "Update the 4-digit parent dashboard access code."
               : "Set a 4-digit parent dashboard access code."}
-          </Text>
-          <TextInput
+          </AppText>
+          <TextField
+            label="New 4-digit code"
             value={newParentPin}
-            onChangeText={(value) =>
-              setNewParentPin(value.replace(/[^0-9]/g, "").slice(0, 4))
-            }
-            placeholder="New 4-digit code"
+            onChangeText={(v) => setNewParentPin(v.replace(/[^0-9]/g, "").slice(0, 4))}
+            placeholder="••••"
             keyboardType="number-pad"
-            style={styles.input}
             maxLength={4}
           />
-          <TextInput
+          <TextField
+            label="Confirm 4-digit code"
             value={confirmParentPin}
-            onChangeText={(value) =>
-              setConfirmParentPin(value.replace(/[^0-9]/g, "").slice(0, 4))
-            }
-            placeholder="Confirm 4-digit code"
+            onChangeText={(v) => setConfirmParentPin(v.replace(/[^0-9]/g, "").slice(0, 4))}
+            placeholder="••••"
             keyboardType="number-pad"
-            style={styles.input}
             maxLength={4}
+            error={pinMismatch ? "Codes do not match" : undefined}
           />
-          <TouchableOpacity
-            style={[styles.button, styles.passwordButton]}
-            disabled={savingParentPin}
+          <Button
+            title={
+              savingParentPin ? "Saving…" : parentPin ? "Update Code" : "Set Code"
+            }
+            variant="secondary"
             onPress={saveParentPin}
-          >
-            <Text style={styles.buttonText}>
-              {savingParentPin
-                ? "Saving..."
-                : parentPin
-                  ? "Update Code"
-                  : "Set Code"}
-            </Text>
-          </TouchableOpacity>
-        </View>
+            loading={savingParentPin}
+            fullWidth
+          />
+        </Card>
 
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Kids PINs</Text>
+        <Card style={styles.card}>
+          <AppText variant="subtitle" style={styles.cardTitle}>
+            Kids&apos; PINs
+          </AppText>
           {kids.length === 0 ? (
-            <Text style={styles.emptyText}>
+            <AppText variant="body" color="textMuted" style={styles.cardHint}>
               Add kids from the dashboard first.
-            </Text>
+            </AppText>
           ) : (
-            <FlatList
-              data={kids}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <View style={styles.kidRow}>
-                  <View>
-                    <Text style={styles.kidName}>
-                      {capitalizeWords(item.name)}
-                    </Text>
-                    <Text style={styles.kidHint}>PIN can be updated here.</Text>
-                  </View>
-                  <TextInput
-                    style={styles.kidInput}
-                    value={kidPins[item.id]}
-                    onChangeText={(value) =>
-                      setKidPins((prev) => ({ ...prev, [item.id]: value }))
-                    }
-                    keyboardType="number-pad"
-                    placeholder="PIN"
-                    maxLength={4}
-                  />
+            kids.map((item) => (
+              <View key={item.id} style={styles.kidRow}>
+                <View style={{ flex: 1 }}>
+                  <AppText variant="bodyStrong">{capitalizeWords(item.name)}</AppText>
+                  <AppText variant="caption" color="textMuted">
+                    PIN can be updated here.
+                  </AppText>
                 </View>
-              )}
-            />
+                <TextField
+                  containerStyle={styles.kidInput}
+                  value={kidPins[item.id]}
+                  onChangeText={(v) =>
+                    setKidPins((prev) => ({ ...prev, [item.id]: v.replace(/[^0-9]/g, "").slice(0, 4) }))
+                  }
+                  keyboardType="number-pad"
+                  placeholder="PIN"
+                  maxLength={4}
+                  textAlign="center"
+                />
+              </View>
+            ))
           )}
-          <TouchableOpacity style={styles.button} onPress={saveKidPins}>
-            <Text style={styles.buttonText}>Save Kid PINs</Text>
-          </TouchableOpacity>
-        </View>
+          <Button title="Save Kid PINs" onPress={saveKidPins} fullWidth />
+        </Card>
 
-        <TouchableOpacity
-          style={[styles.button, styles.signOutButton]}
+        <Button
+          title="Sign Out"
+          variant="danger"
           onPress={handleSignOut}
-        >
-          <Text style={styles.buttonText}>Sign Out</Text>
-        </TouchableOpacity>
+          fullWidth
+          style={{ marginTop: spacing.sm }}
+        />
 
-        <Modal visible={authModalVisible} animationType="slide" transparent>
-          <View style={styles.authModalOverlay}>
-            <View style={styles.authModalContainer}>
-              <Text style={styles.authModalTitle}>
-                Enter Parent Access Code
-              </Text>
-              <TextInput
-                value={parentPinInputAttempt}
-                onChangeText={(value) =>
-                  setParentPinInputAttempt(
-                    value.replace(/[^0-9]/g, "").slice(0, 4),
-                  )
-                }
-                placeholder="4-digit code"
-                keyboardType="number-pad"
-                secureTextEntry
-                style={styles.input}
-                maxLength={4}
-              />
-              <TouchableOpacity style={styles.button} onPress={verifyParentPin}>
-                <Text style={styles.buttonText}>Unlock</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
-      </ScrollView>
-    </SafeAreaView>
+        <Button
+          title="Delete Account"
+          variant="ghost"
+          onPress={() => setDeleteModalVisible(true)}
+          fullWidth
+        />
+      </Screen>
+
+      <Dialog
+        visible={deleteModalVisible}
+        onClose={closeDeleteModal}
+        title="Delete Account"
+        subtitle="This permanently deletes your account, kids, tasks and stars. This cannot be undone."
+        actions={[
+          { label: "Cancel", variant: "ghost", onPress: closeDeleteModal },
+          {
+            label: "Delete",
+            variant: "danger",
+            onPress: deleteAccount,
+            loading: deletingAccount,
+          },
+        ]}
+      >
+        <TextField
+          label="Enter your password to confirm"
+          value={deletePassword}
+          onChangeText={setDeletePassword}
+          placeholder="Password"
+          secureToggle
+          leftIcon="lock-closed-outline"
+        />
+      </Dialog>
+
+      <Dialog
+        visible={authModalVisible}
+        onClose={() => {}}
+        dismissable={false}
+        inline
+        title="Enter Parent Access Code"
+        actions={[
+          { label: "Back", variant: "ghost", onPress: () => router.back() },
+          { label: "Unlock", onPress: verifyParentPin },
+        ]}
+      >
+        <TextField
+          value={parentPinInputAttempt}
+          onChangeText={(v) =>
+            setParentPinInputAttempt(v.replace(/[^0-9]/g, "").slice(0, 4))
+          }
+          placeholder="4-digit code"
+          keyboardType="number-pad"
+          secureToggle
+          maxLength={4}
+          autoFocus
+        />
+      </Dialog>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#F5F5FA' },
-  container: { flex: 1, backgroundColor: '#F5F5FA' },
-  content: { padding: 20, paddingBottom: 40 },
-
-  profileHeader: {
-    alignItems: 'center',
-    paddingVertical: 24,
-    marginBottom: 8,
+  screen: { flex: 1, backgroundColor: colors.bg },
+  content: { paddingBottom: spacing["4xl"], gap: spacing.md },
+  profileHeader: { alignItems: "center", paddingVertical: spacing["2xl"], gap: spacing.xs },
+  avatarCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: "#EDEAFF",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: spacing.sm,
   },
-  profileAvatarCircle: {
-    width: 72, height: 72, borderRadius: 36,
-    backgroundColor: '#EDEAFF',
-    alignItems: 'center', justifyContent: 'center',
-    marginBottom: 12,
-    shadowColor: '#6C63FF', shadowOpacity: 0.2, shadowRadius: 10, elevation: 4,
-  },
-  profileAvatarText: { fontSize: 36 },
-  profileTitle: { fontSize: 20, fontWeight: '700', color: '#1A1A2E', marginBottom: 4 },
-  profileSubtitle: { fontSize: 13, color: '#8A8F98' },
-
-  card: {
-    marginBottom: 14,
-    borderRadius: 20,
-    backgroundColor: '#ffffff',
-    padding: 18,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
-  },
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#1A1A2E',
-    marginBottom: 14,
-  },
-  label: {
-    fontSize: 13,
-    color: '#8A8F98',
-    marginBottom: 6,
-    fontWeight: '500',
-  },
-  input: {
-    backgroundColor: '#F5F5FA',
-    borderRadius: 14,
-    padding: 13,
-    marginBottom: 12,
-    fontSize: 15,
-    color: '#1A1A2E',
-    borderWidth: 1,
-    borderColor: '#EDEDF5',
-  },
-  disabledInput: { opacity: 0.6 },
-  button: {
-    backgroundColor: '#6C63FF',
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  passwordButton: { backgroundColor: '#FB8500' },
-  signOutButton: { backgroundColor: '#FF5D5D', marginTop: 14 },
-  buttonText: { color: '#fff', fontWeight: '600', fontSize: 15 },
-  disabledButton: { opacity: 0.65 },
-
+  avatarText: { fontSize: 34 },
+  card: { gap: spacing.xs },
+  cardTitle: { marginBottom: spacing.sm },
+  cardHint: { marginBottom: spacing.md },
   kidRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    paddingVertical: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F8',
+    borderBottomColor: colors.border,
   },
-  kidName: { fontSize: 15, fontWeight: '600', color: '#1A1A2E' },
-  kidHint: { color: '#8A8F98', fontSize: 12, marginTop: 2 },
-  kidInput: {
-    width: 90,
-    backgroundColor: '#F5F5FA',
-    borderRadius: 12,
-    padding: 11,
-    textAlign: 'center',
-    fontSize: 15,
-    borderWidth: 1,
-    borderColor: '#EDEDF5',
+  kidInput: { width: 92, marginBottom: 0 },
+  leaderChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+    maxWidth: 190,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 6,
+    borderRadius: radii.pill,
+    backgroundColor: palette.accentSoft,
   },
-  emptyText: { color: '#8A8F98', fontSize: 14, marginBottom: 14 },
-
-  authModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  authModalContainer: {
-    width: '100%',
-    backgroundColor: '#fff',
-    borderRadius: 24,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 8,
-  },
-  authModalTitle: {
-    fontSize: 18, fontWeight: '700',
-    marginBottom: 16, textAlign: 'center', color: '#1A1A2E',
-  },
-
-  heading: { fontSize: 26, fontWeight: '700', marginBottom: 20, color: '#1A1A2E' },
-  subtitleText: { color: '#8A8F98', marginBottom: 12, fontSize: 13 },
 });

@@ -1,8 +1,10 @@
 import { t } from "@/lib/i18n";
+import { colors, palette, radii, shadows, spacing } from "@/constants/theme";
 import { useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
-import { Alert, FlatList, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Alert, FlatList, Modal, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
+
+import { Avatar, Text } from "@/components/ui";
 import ScreenHeader from "../components/ScreenHeader";
 import { useKids } from "../context/KidContext";
 import { capitalizeWords } from "../utils/textUtils";
@@ -13,7 +15,7 @@ export default function KidDetailsScreen() {
   const [editStars, setEditStars] = useState("");
   const [editReason, setEditReason] = useState("");
   const { kidId } = useLocalSearchParams();
-  const { kids, completions, tasks, getKidStars, removeCompletion, updateCompletion } = useKids();
+  const { kids, completions, competitions, tasks, getKidStars, getChallengeStars, getLeaderIds, removeCompletion, updateCompletion } = useKids();
   const kid = kids.find((k) => k.id === kidId);
 
   const kidCompletions = useMemo(
@@ -72,210 +74,83 @@ export default function KidDetailsScreen() {
     });
   }, [kidCompletions]);
 
-  // const monthlyStars = useMemo(() => {
-  //   const months: { [key: string]: number } = {};
-  //   kidCompletions.forEach((c) => {
-  //     const monthKey = c.date.slice(0, 7); // YYYY-MM
-  //     months[monthKey] = (months[monthKey] || 0) + (c.stars || 0);
-  //   });
-  //   return months;
-  // }, [kidCompletions]);
-  const monthlyStars = useMemo(() => {
-    const months: { [key: string]: number } = {};
-
-    kidCompletions.forEach((c) => {
-      const monthKey = c.date.slice(0, 7);
-
-      let stars = c.stars || 0;
-
-      if (!c.isBonus && !c.isPenalty) {
-        const task = tasks.find((t) => t.id === c.taskId);
-        const subtask = task?.subtasks.find((s) => s.id === c.subtaskId);
-        stars = subtask?.stars || 0;
-      }
-
-      months[monthKey] = (months[monthKey] || 0) + stars;
-    });
-
-    return months;
-  }, [kidCompletions, tasks]);
-
-
-
-  const allKidsMonthlyStars = useMemo(() => {
-    const result: {
-      [kidId: string]: { [monthKey: string]: number };
-    } = {};
-
-    kids.forEach((k) => {
-      result[k.id] = {};
-
-      const kCompletions = completions.filter((c) => c.kidId === k.id);
-
-      kCompletions.forEach((c) => {
-        const monthKey = c.date.slice(0, 7);
-
-        let stars = c.stars || 0;
-
-        if (!c.isBonus && !c.isPenalty) {
-          const task = tasks.find((t) => t.id === c.taskId);
-          const subtask = task?.subtasks.find((s) => s.id === c.subtaskId);
-          stars = subtask?.stars || 0;
-        }
-
-        result[k.id][monthKey] = (result[k.id][monthKey] || 0) + stars;
-      });
-    });
-
-    return result;
-  }, [kids, completions, tasks]);
-
-  const getCurrentMonthKey = () => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  };
-
-  const getPreviousMonthKey = () => {
-    const now = new Date();
-    const prevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-    return `${prevMonth.getFullYear()}-${String(
-      prevMonth.getMonth() + 1,
-    ).padStart(2, "0")}`;
-  };
-
-  // const getPreviousMonthRanking = () => {
-  //   const prevMonthKey = getPreviousMonthKey();
-  //   const rankings = kids
-  //     .map((k) => ({
-  //       kid: k,
-  //       stars: allKidsMonthlyStars[k.id]?.[prevMonthKey] || 0,
-  //     }))
-  //     .sort((a, b) => b.stars - a.stars);
-  //   return rankings;
-  // };
-
+  /** Rankings from the most recently ended challenge. */
+  const lastChallengeRankings = useMemo(
+    () => (competitions.length > 0 ? competitions[competitions.length - 1].rankings : []),
+    [competitions],
+  );
 
   if (!kid) {
     return (
-      <SafeAreaView style={styles.screen}>
-        <ScreenHeader tKey="kidDetails.title" showBackButton />
+      <View style={styles.screen}>
+        <ScreenHeader title={t("kidDetails.title")} showBackButton />
         <View style={styles.centeredBox}>
           <Text>{t('kidDetails.not_found')}</Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
-  const getLatestPreviousMonthWithData = () => {
-    const currentMonth = getCurrentMonthKey();
-
-    const monthKeys = Object.values(allKidsMonthlyStars)
-      .flatMap((kidMonths) => Object.keys(kidMonths))
-      .filter((monthKey) => monthKey < currentMonth)
-      .sort()
-      .reverse();
-
-    return monthKeys[0] || null;
-  };
-
-  const getPreviousMonthRanking = () => {
-    const prevMonthKey = getLatestPreviousMonthWithData();
-
-    if (!prevMonthKey) {
-      return [];
-    }
-
-    return kids
-      .map((k) => ({
-        kid: k,
-        stars: allKidsMonthlyStars[k.id]?.[prevMonthKey] || 0,
-        monthKey: prevMonthKey,
-      }))
-      .sort((a, b) => b.stars - a.stars);
-  };
-
-  const currentMonthKey = getCurrentMonthKey();
-  const prevMonthRanking = getPreviousMonthRanking();
-
   return (
-    <SafeAreaView style={styles.screen}>
-      <ScreenHeader tKey="kidDetails.title" showBackButton />
+    <View style={styles.screen}>
+      <ScreenHeader title={t("kidDetails.title")} showBackButton />
       <ScrollView style={styles.container}>
         {/* Kid Info Header */}
         <View style={styles.headerCard}>
-          <Text style={styles.avatar}>{kid.avatar}</Text>
+          <Avatar
+            emoji={kid.avatar}
+            size="xl"
+            crowned={getLeaderIds().includes(kid.id)}
+            style={styles.avatar}
+          />
           <Text style={styles.kidName}>{capitalizeWords(kid.name)}</Text>
           <Text style={styles.totalStars}>
             Total Stars: {getKidStars(kidId as string)}
           </Text>
         </View>
 
-        {/* This Month Stats */}
+        {/* This Challenge Stats */}
         <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>This Month</Text>
+          <Text style={styles.sectionTitle}>This Challenge</Text>
           <View style={styles.statRow}>
             <Text style={styles.statLabel}>Stars Earned:</Text>
-            <Text style={styles.statValue}>
-              {monthlyStars[currentMonthKey] || 0} ⭐
-            </Text>
+            <Text style={styles.statValue}>{getChallengeStars(kidId as string)} ⭐</Text>
           </View>
           <View style={styles.statRow}>
             <Text style={styles.statLabel}>Completions:</Text>
             <Text style={styles.statValue}>
-              {
-                kidCompletions.filter(
-                  (c) =>
-                    c.date.slice(0, 7) === currentMonthKey &&
-                    !c.isBonus &&
-                    !c.isPenalty,
-                ).length
-              }
+              {kidCompletions.filter((c) => !c.isBonus && !c.isPenalty).length}
             </Text>
           </View>
           <View style={styles.statRow}>
             <Text style={styles.statLabel}>Bonuses:</Text>
-            <Text style={styles.statValue}>
-              {
-                allBonuses.filter((b) => b.date.slice(0, 7) === currentMonthKey)
-                  .length
-              }
-            </Text>
+            <Text style={styles.statValue}>{allBonuses.length}</Text>
           </View>
           <View style={styles.statRow}>
             <Text style={styles.statLabel}>Penalties:</Text>
-            <Text style={styles.statValue}>
-              {
-                allPenalties.filter(
-                  (p) => p.date.slice(0, 7) === currentMonthKey,
-                ).length
-              }
-            </Text>
+            <Text style={styles.statValue}>{allPenalties.length}</Text>
           </View>
         </View>
 
-        {/* Previous Month Ranking */}
+        {/* Previous Challenge Ranking */}
         <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>Previous Month Ranking</Text>
-          {prevMonthRanking.length === 0 ? (
-            <Text style={styles.mutedText}>
-              No data available
-            </Text>
+          <Text style={styles.sectionTitle}>Previous Challenge Ranking</Text>
+          {lastChallengeRankings.length === 0 ? (
+            <Text style={styles.mutedText}>No past challenges yet</Text>
           ) : (
             <FlatList
-              data={prevMonthRanking}
-              keyExtractor={(item) => item.kid.id}
+              data={lastChallengeRankings}
+              keyExtractor={(item) => item.kidId}
               scrollEnabled={false}
               renderItem={({ item, index }) => (
                 <View
                   style={[
                     styles.rankingRow,
-                    item.kid.id === kidId && styles.highlightedRanking,
+                    item.kidId === kidId && styles.highlightedRanking,
                   ]}
                 >
                   <Text style={styles.rankingPosition}>#{index + 1}</Text>
-                  <Text style={styles.rankingName}>
-                    {capitalizeWords(item.kid.name)}
-                  </Text>
+                  <Text style={styles.rankingName}>{capitalizeWords(item.name)}</Text>
                   <Text style={styles.rankingStars}>{item.stars} ⭐</Text>
                 </View>
               )}
@@ -400,345 +275,174 @@ export default function KidDetailsScreen() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
+const CARD = { backgroundColor: colors.card, borderRadius: radii.lg, ...shadows.sm };
+const HAIRLINE = { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border };
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-  },
-  headerCard: {
-    backgroundColor: "#fff",
-    padding: 20,
-    borderRadius: 14,
-    alignItems: "center",
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-  },
-  avatar: {
-    fontSize: 56,
-    marginBottom: 12,
-  },
-  kidName: {
-    fontSize: 24,
-    fontWeight: "900",
-    marginBottom: 8,
-  },
-  totalStars: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: "#6C63FF",
-  },
-  sectionCard: {
-    backgroundColor: "#fff",
-    padding: 16,
-    borderRadius: 14,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "800",
-    marginBottom: 12,
-    color: "#2D2A32",
-  },
+  container: { flex: 1, padding: spacing.lg },
+  headerCard: { ...CARD, padding: spacing.xl, alignItems: "center", marginBottom: spacing.lg },
+  avatar: { marginTop: spacing.xl, marginBottom: spacing.md },
+  kidName: { fontSize: 24, fontWeight: "800", marginBottom: spacing.sm, color: colors.text },
+  totalStars: { fontSize: 18, fontWeight: "800", color: colors.primary },
+  sectionCard: { ...CARD, padding: spacing.lg, marginBottom: spacing.lg },
+  sectionTitle: { fontSize: 18, fontWeight: "800", marginBottom: spacing.md, color: colors.text },
   statRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingVertical: 10,
-    borderBottomWidth: 0.5,
-    borderBottomColor: "#f0f0f0",
+    paddingVertical: spacing.md,
+    ...HAIRLINE,
   },
-  statLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#666",
-  },
-  statValue: {
-    fontSize: 14,
-    fontWeight: "800",
-    color: "#2D2A32",
-  },
+  statLabel: { fontSize: 14, fontWeight: "600", color: colors.textMuted },
+  statValue: { fontSize: 14, fontWeight: "800", color: colors.text },
   rankingRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    borderBottomWidth: 0.5,
-    borderBottomColor: "#f0f0f0",
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    ...HAIRLINE,
   },
   highlightedRanking: {
-    backgroundColor: "#f0f0f0",
-    borderRadius: 8,
-    marginVertical: 4,
+    backgroundColor: palette.primarySoft,
+    borderRadius: radii.sm,
+    marginVertical: spacing.xs,
   },
-  rankingPosition: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: "#6C63FF",
-    width: 40,
-  },
-  rankingName: {
-    fontSize: 16,
-    fontWeight: "700",
-    flex: 1,
-    marginLeft: 12,
-  },
-  rankingStars: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: "#FFD700",
-  },
+  rankingPosition: { fontSize: 16, fontWeight: "800", color: colors.primary, width: 40 },
+  rankingName: { fontSize: 16, fontWeight: "700", flex: 1, marginLeft: spacing.md, color: colors.text },
+  rankingStars: { fontSize: 16, fontWeight: "800", color: palette.accentDark },
   historyItem: {
     flexDirection: "row",
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    borderBottomWidth: 0.5,
-    borderBottomColor: "#f0f0f0",
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    ...HAIRLINE,
     alignItems: "center",
   },
-  historyTask: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#2D2A32",
-  },
-  historySubtask: {
-    fontSize: 12,
-    color: "#666",
-    marginTop: 4,
-  },
+  historyTask: { fontSize: 14, fontWeight: "700", color: colors.text },
+  historySubtask: { fontSize: 12, color: colors.textMuted, marginTop: spacing.xs },
   historyReason: {
     fontSize: 12,
-    color: "#666",
-    marginTop: 4,
+    color: colors.textMuted,
+    marginTop: spacing.xs,
     fontStyle: "italic",
   },
-  historyDate: {
-    fontSize: 11,
-    color: "#999",
-    marginTop: 4,
-  },
-  historyStars: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: "#FFD700",
-    marginLeft: 12,
-  },
-  bonusItem: {
-    backgroundColor: "#f0ffe7",
-  },
-  bonusStars: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: "#28a745",
-    marginLeft: 12,
-  },
-  penaltyItem: {
-    backgroundColor: "#ffe7e7",
-  },
-  penaltyStars: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: "#dc3545",
-    marginLeft: 12,
-  },
-  screen: {
-    flex: 1,
-    backgroundColor: "#FFF8E7",
-  },
-  centeredBox: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  mutedText: {
-    color: "#666",
-    padding: 12,
-  },
-  flex1: {
-    flex: 1,
-  },
+  historyDate: { fontSize: 11, color: colors.textFaint, marginTop: spacing.xs },
+  historyStars: { fontSize: 16, fontWeight: "800", color: palette.accentDark, marginLeft: spacing.md },
+  bonusItem: { backgroundColor: palette.successSoft },
+  bonusStars: { fontSize: 16, fontWeight: "800", color: "#02795B", marginLeft: spacing.md },
+  penaltyItem: { backgroundColor: palette.dangerSoft },
+  penaltyStars: { fontSize: 16, fontWeight: "800", color: "#C22E51", marginLeft: spacing.md },
+  screen: { flex: 1, backgroundColor: colors.bg },
+  centeredBox: { flex: 1, justifyContent: "center", alignItems: "center" },
+  mutedText: { color: colors.textMuted, padding: spacing.md },
+  flex1: { flex: 1 },
   rowSpaceBetween: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  rowAlignCenterFlex1: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-  historyBody: {
-    marginLeft: 12,
-    flex: 1,
-  },
-  linkText: {
-    color: "#6C63FF",
-    fontWeight: "700",
-  },
+  rowAlignCenterFlex1: { flexDirection: "row", alignItems: "center", flex: 1 },
+  historyBody: { marginLeft: spacing.md, flex: 1 },
+  linkText: { color: colors.primary, fontWeight: "700" },
   removeBtn: {
-    marginLeft: 10,
-    backgroundColor: "#FFE7E7",
+    marginLeft: spacing.sm,
+    backgroundColor: palette.dangerSoft,
     paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 8,
+    paddingHorizontal: spacing.md,
+    borderRadius: radii.sm,
   },
-
-  removeBtnText: {
-    color: "#dc3545",
-    fontSize: 12,
-    fontWeight: "800",
-  },
+  removeBtnText: { color: "#C22E51", fontSize: 12, fontWeight: "800" },
   editBtn: {
-    marginLeft: 10,
-    backgroundColor: "#E8E7FF",
+    marginLeft: spacing.sm,
+    backgroundColor: palette.primarySoft,
     paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 8,
+    paddingHorizontal: spacing.md,
+    borderRadius: radii.sm,
   },
-  editBtnText: {
-    color: "#6C63FF",
-    fontSize: 12,
-    fontWeight: "800",
-  },
-  modalBack: {
-    flex: 1,
-    justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.4)",
-  },
+  editBtnText: { color: colors.primary, fontSize: 12, fontWeight: "800" },
+  modalBack: { flex: 1, justifyContent: "center", backgroundColor: colors.overlay },
   modalCard: {
-    margin: 20,
-    backgroundColor: "#fff",
-    padding: 18,
-    borderRadius: 14,
+    margin: spacing.xl,
+    backgroundColor: colors.card,
+    padding: spacing.xl,
+    borderRadius: radii.xl,
+    ...shadows.lg,
   },
   input: {
-    borderWidth: 1,
-    borderColor: "#eee",
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    backgroundColor: colors.inputBg,
+    padding: spacing.md,
+    borderRadius: radii.md,
+    marginBottom: spacing.sm,
+    color: colors.text,
   },
   saveBtn: {
-    backgroundColor: "#03c8A7",
-    padding: 14,
-    borderRadius: 12,
+    backgroundColor: colors.primary,
+    padding: spacing.md,
+    borderRadius: radii.md,
     alignItems: "center",
-    marginTop: 10,
+    marginTop: spacing.md,
   },
-  saveBtnText: {
-    color: "#fff",
-    fontWeight: "800",
-  },
+  saveBtnText: { color: colors.onPrimary, fontWeight: "800" },
   cancelBtn: {
-    backgroundColor: "#ccc",
-    padding: 14,
-    borderRadius: 12,
+    backgroundColor: colors.bgAlt,
+    padding: spacing.md,
+    borderRadius: radii.md,
     alignItems: "center",
-    marginTop: 10,
+    marginTop: spacing.md,
   },
-  cancelBtnText: {
-    color: "#000",
-    fontWeight: "800",
-  },
+  cancelBtnText: { color: colors.text, fontWeight: "800" },
 
   // Activity timeline
-  dateGroup: {
-    marginBottom: 8,
-  },
+  dateGroup: { marginBottom: spacing.sm },
   dateHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
-    marginTop: 4,
+    marginBottom: spacing.sm,
+    marginTop: spacing.xs,
   },
   dateLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#6C63FF',
-    marginRight: 8,
+    color: colors.primary,
+    marginRight: spacing.sm,
     textTransform: 'uppercase',
   },
-  dateLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#E8E8F0',
-    marginRight: 8,
-  },
+  dateLine: { flex: 1, height: 1, backgroundColor: colors.border, marginRight: spacing.sm },
   dateCountBadge: {
-    backgroundColor: '#EDEAFF',
+    backgroundColor: palette.primarySoft,
     paddingHorizontal: 7,
     paddingVertical: 2,
-    borderRadius: 10,
+    borderRadius: radii.sm,
   },
-  dateCountText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#6C63FF',
-  },
+  dateCountText: { fontSize: 11, fontWeight: '700', color: colors.primary },
   activityItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    borderRadius: 10,
-    marginBottom: 6,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    borderRadius: radii.sm,
+    marginBottom: spacing.xs,
   },
-  taskActivity: {
-    backgroundColor: '#F7F6FF',
-  },
-  bonusActivity: {
-    backgroundColor: '#F0FFF8',
-  },
-  penaltyActivity: {
-    backgroundColor: '#FFF4F4',
-  },
+  taskActivity: { backgroundColor: palette.primarySoft },
+  bonusActivity: { backgroundColor: palette.successSoft },
+  penaltyActivity: { backgroundColor: palette.dangerSoft },
   activityIconBg: {
     width: 36,
     height: 36,
-    borderRadius: 10,
+    borderRadius: radii.sm,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 10,
+    marginRight: spacing.md,
   },
-  activityIconText: {
-    fontSize: 18,
-  },
-  activityBody: {
-    flex: 1,
-  },
-  activityTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#2D2A32',
-  },
-  activitySub: {
-    fontSize: 11,
-    color: '#888',
-    marginTop: 2,
-  },
-  taskValue: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#6C63FF',
-    marginRight: 6,
-  },
-  bonusValue: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#06D6A0',
-    marginRight: 6,
-  },
-  penaltyValue: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#FF5D5D',
-    marginRight: 6,
-  },
+  activityIconText: { fontSize: 18 },
+  activityBody: { flex: 1 },
+  activityTitle: { fontSize: 13, fontWeight: '700', color: colors.text },
+  activitySub: { fontSize: 11, color: colors.textFaint, marginTop: 2 },
+  taskValue: { fontSize: 14, fontWeight: '800', color: colors.primary, marginRight: spacing.xs },
+  bonusValue: { fontSize: 14, fontWeight: '800', color: palette.success, marginRight: spacing.xs },
+  penaltyValue: { fontSize: 14, fontWeight: '800', color: colors.danger, marginRight: spacing.xs },
 });

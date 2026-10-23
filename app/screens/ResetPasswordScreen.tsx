@@ -1,17 +1,12 @@
-import { auth, db } from "@/lib/firebase/config";
+import { Button, TextField } from "@/components/ui";
+import { auth } from "@/lib/firebase/config";
 import { useRouter } from "expo-router";
 import { sendPasswordResetEmail } from "firebase/auth";
-import { collection, getDocs, query, where } from "firebase/firestore";
 import { useState } from "react";
-import {
-    Alert,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Alert } from "react-native";
+import AuthScreen from "../components/AuthScreen";
 import { useLoading, useWithLoading } from "../context/LoadingContext";
+import { friendlyErrorMessage } from "../utils/errorUtils";
 import { alertNetworkError, checkInternet, isNetworkError } from "../utils/netUtils";
 
 export default function ResetPasswordScreen() {
@@ -22,7 +17,7 @@ export default function ResetPasswordScreen() {
 
     const resetPassword = async () => {
         if (!email) {
-            Alert.alert("Required", "Please enter your email address.");
+            Alert.alert("Missing email", "Please enter your email address.");
             return;
         }
 
@@ -30,15 +25,6 @@ export default function ResetPasswordScreen() {
 
         try {
             await withLoading(async () => {
-                const snap = await getDocs(
-                    query(collection(db, "parents"), where("email", "==", email.trim()))
-                );
-
-                if (snap.empty) {
-                    Alert.alert("Not Found", "No account found with this email address.");
-                    return;
-                }
-
                 await sendPasswordResetEmail(auth, email.trim());
                 router.replace("/screens/ResetPasswordConfirmationScreen");
             });
@@ -46,90 +32,56 @@ export default function ResetPasswordScreen() {
             console.error("Password reset error:", error);
             if (isNetworkError(error)) {
                 alertNetworkError();
+            } else if (error?.code === "auth/invalid-email") {
+                Alert.alert("Invalid email", "Please enter a valid email address.");
+            } else if (error?.code === "auth/user-not-found") {
+                Alert.alert(
+                    "Account not found",
+                    "We couldn't find an account with this email. Please sign up first."
+                );
             } else {
-                Alert.alert("Reset Failed", error?.message || "Unable to send password reset email.");
+                Alert.alert(
+                    "Couldn't send the email",
+                    friendlyErrorMessage(error, "We couldn't send the email. Please try again.")
+                );
             }
         }
     };
 
     return (
-        <SafeAreaView style={styles.container}>
-            <Text style={styles.title}>Reset Password</Text>
-            <Text style={styles.subtitle}>
-                Enter the email address for your account, and we will send you a reset
-                link.
-            </Text>
-
-            <TextInput
-                placeholder="Email"
+        <AuthScreen
+            title="Reset Password"
+            subtitle="Enter the email for your account and we'll send you a reset link."
+            footer={
+                <Button
+                    title="Back to login"
+                    variant="ghost"
+                    size="sm"
+                    haptic={false}
+                    onPress={() => router.replace("/screens/LoginScreen")}
+                />
+            }
+        >
+            <TextField
+                label="Email"
+                placeholder="you@example.com"
                 value={email}
-                onChangeText={(t) => setEmail(t.replace(/\s/g, ''))}
+                onChangeText={(t) => setEmail(t.replace(/\s/g, ""))}
                 autoCapitalize="none"
                 keyboardType="email-address"
-                style={styles.input}
+                leftIcon="mail-outline"
+                returnKeyType="go"
+                onSubmitEditing={resetPassword}
             />
 
-            <TouchableOpacity
-                style={[styles.button, loading && styles.buttonDisabled]}
+            <Button
+                title="Send Reset Link"
                 onPress={resetPassword}
-                disabled={loading}
-            >
-                <Text style={styles.buttonText}>{loading ? "Sending..." : "Send Reset Link"}</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={() => router.replace("/screens/LoginScreen")}>
-                <Text style={styles.link}>Back to login</Text>
-            </TouchableOpacity>
-        </SafeAreaView>
+                loading={loading}
+                fullWidth
+                playful
+                style={{ marginTop: 4 }}
+            />
+        </AuthScreen>
     );
 }
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        padding: 24,
-        justifyContent: "center",
-        backgroundColor: "#FFF8E7",
-    },
-    title: {
-        fontSize: 30,
-        fontWeight: "900",
-        textAlign: "center",
-        color: "#2D2A32",
-        marginBottom: 12,
-    },
-    subtitle: {
-        textAlign: "center",
-        color: "#666",
-        marginBottom: 24,
-        fontSize: 15,
-    },
-    input: {
-        backgroundColor: "#fff",
-        padding: 16,
-        borderRadius: 18,
-        marginBottom: 14,
-        fontSize: 16,
-    },
-    button: {
-        backgroundColor: "#6C63FF",
-        padding: 17,
-        borderRadius: 20,
-        marginTop: 6,
-    },
-    buttonDisabled: {
-        opacity: 0.7,
-    },
-    buttonText: {
-        color: "#fff",
-        fontWeight: "900",
-        fontSize: 17,
-        textAlign: "center",
-    },
-    link: {
-        textAlign: "center",
-        marginTop: 18,
-        color: "#6C63FF",
-        fontWeight: "800",
-    },
-});
