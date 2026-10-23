@@ -48,6 +48,13 @@ export default function HomeScreen() {
       Alert.alert(
         t("home.no_kids_title"),
         t("home.no_kids_msg"),
+        [
+          { text: t("home.cancel"), style: "cancel" },
+          {
+            text: t("home.open_parent_area"),
+            onPress: () => router.push("/screens/ParentDashboard?from=index"),
+          },
+        ],
       );
     } else {
       router.push("/screens/KidScreen");
@@ -95,7 +102,6 @@ export default function HomeScreen() {
       <View style={styles.bgBlobBottomRight} />
 
       <View style={styles.header}>
-        <LanguageSwitcher />
         <IconButton
           icon="power"
           variant="surface"
@@ -103,6 +109,7 @@ export default function HomeScreen() {
           onPress={handleLogout}
           accessibilityLabel={t("home.logout_confirm")}
         />
+        <LanguageSwitcher />
       </View>
 
       <View style={styles.mainContent}>
@@ -240,6 +247,8 @@ const styles = StyleSheet.create({
     pointerEvents: "none",
   },
   header: {
+    // Language toggle stays top-right, log out top-left, in both languages.
+    direction: "ltr",
     width: "100%",
     flexDirection: "row",
     justifyContent: "space-between",

@@ -1,10 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { ReactNode, useEffect, useRef, useState } from 'react';
+import * as Haptics from 'expo-haptics';
+import { ReactNode, useCallback, useEffect, useState } from 'react';
 import {
   Alert,
-  Animated,
   FlatList,
   LayoutAnimation,
   Platform,
@@ -29,6 +29,7 @@ import {
 import { colors, palette, radii, shadows, spacing } from '@/constants/theme';
 import KidAvatar from '../components/KidAvatar';
 import ScreenHeader from '../components/ScreenHeader';
+import StarCelebration, { type Celebration } from '../components/StarCelebration';
 import { useKids, type Kid } from '../context/KidContext';
 
 // Each task gets its own colour so the list reads as a rainbow, not a grey stack.
@@ -59,8 +60,8 @@ export default function KidScreen() {
   const [pinValue, setPinValue] = useState('');
   const [pinTargetId, setPinTargetId] = useState<string | null>(null);
 
-  const confettiScale = useRef(new Animated.Value(0)).current;
-  const [celebrateVisible, setCelebrateVisible] = useState(false);
+  const [celebration, setCelebration] = useState<Celebration | null>(null);
+  const clearCelebration = useCallback(() => setCelebration(null), []);
 
   useEffect(() => {
     if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -68,21 +69,12 @@ export default function KidScreen() {
     }
   }, []);
 
-  function triggerCelebrate() {
-    setCelebrateVisible(true);
-    confettiScale.setValue(0);
-    Animated.spring(confettiScale, { toValue: 1, useNativeDriver: true, friction: 5 }).start(() => {
-      setTimeout(() => {
-        Animated.timing(confettiScale, { toValue: 0, duration: 300, useNativeDriver: true }).start(
-          () => setCelebrateVisible(false),
-        );
-      }, 900);
-    });
-  }
-
   function markSubtask(taskId: string, subtaskId: string) {
     if (!selectedKid) {
-      Alert.alert('Choose a kid', 'Please choose a kid first.');
+      Alert.alert(
+        'Tap your picture first',
+        'Tap your picture at the top of the screen and type your PIN. Then you can mark your tasks.',
+      );
       return;
     }
     try {
@@ -96,16 +88,16 @@ export default function KidScreen() {
           (c) => c.kidId === selectedKid.id && c.taskId === taskId && c.date === today,
         ).length;
         const nowDone = existing + 1;
-        if (nowDone >= total && total > 0) {
-          triggerCelebrate();
-        }
-        Alert.alert('Great job! ⭐', 'Well done! You earned a star.');
+        const stars = task?.subtasks.find((st) => st.id === subtaskId)?.stars ?? 1;
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+        setCelebration({ id: Date.now(), stars, taskDone: total > 0 && nowDone >= total });
       } else {
-        Alert.alert('Already done', 'You already finished this today. Well done!');
+        // Already done today — the chip already shows "✓ Done", so no pop-up.
+        Haptics.selectionAsync().catch(() => {});
       }
     } catch (err) {
       console.warn('toggleCompletion error', err);
-      Alert.alert('Oops', 'That didn\'t work. Please try again.');
+      Alert.alert('Something went wrong', 'Please tap the task again.');
     }
   }
 
@@ -122,9 +114,12 @@ export default function KidScreen() {
     if (kid.pin === pinValue) {
       setSelectedKid(kid);
       setPinModalVisible(false);
-      Alert.alert('Hi there! 👋', `Welcome, ${kid.name}!`);
     } else {
-      Alert.alert('Wrong PIN', 'Please try again.');
+      setPinValue('');
+      Alert.alert(
+        'Wrong PIN',
+        'That PIN is not correct. Please try again.\n\nForgot your PIN? Ask your mom or dad.',
+      );
     }
   }
 
@@ -338,15 +333,9 @@ export default function KidScreen() {
           }
         />
 
-        {celebrateVisible ? (
-          <Animated.View
-            pointerEvents="none"
-            style={[styles.celebrate, { transform: [{ scale: confettiScale }] }]}
-          >
-            <AppText style={{ fontSize: 56 }}>🎉✨🎉</AppText>
-          </Animated.View>
-        ) : null}
       </Screen>
+
+      <StarCelebration celebration={celebration} onDone={clearCelebration} />
 
       <Dialog
         visible={pinModalVisible}
@@ -496,11 +485,4 @@ const styles = StyleSheet.create({
   },
   strike: { textDecorationLine: 'line-through' },
   rewardRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  celebrate: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 120,
-    alignItems: 'center',
-  },
 });

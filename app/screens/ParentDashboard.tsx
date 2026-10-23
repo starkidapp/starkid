@@ -18,8 +18,10 @@ import {
 
 import { Avatar, Text } from "@/components/ui";
 import { colors, palette, radii, shadows, spacing } from "@/constants/theme";
+import AvatarPicker from "../components/AvatarPicker";
 import ScreenHeader from "../components/ScreenHeader";
 import { useKids } from "../context/KidContext";
+import { useToast } from "../context/ToastContext";
 import { capitalizeWords, joinNames } from "../utils/textUtils";
 
 export default function ParentDashboard() {
@@ -41,6 +43,7 @@ export default function ParentDashboard() {
     addPenalty,
     resetCompetition,
   } = useKids();
+  const { showToast } = useToast();
 
   const [modalVisible, setModalVisible] = useState(false);
   const [taskModalVisible, setTaskModalVisible] = useState(false);
@@ -90,6 +93,11 @@ export default function ParentDashboard() {
     { title: string; stars: string }[]
   >([]);
 
+  // Edit kid (name + avatar) states
+  const [editKidId, setEditKidId] = useState<string | null>(null);
+  const [editKidName, setEditKidName] = useState("");
+  const [editKidAvatar, setEditKidAvatar] = useState("🧒");
+
   // Kid PIN reset states
   const [kidPinModalVisible, setKidPinModalVisible] = useState(false);
   const [kidToResetId, setKidToResetId] = useState<string | null>(null);
@@ -102,6 +110,27 @@ export default function ParentDashboard() {
   const kidPinRef = useRef<TextInput>(null);
   const focusSoon = (ref: React.RefObject<TextInput | null>) =>
     setTimeout(() => ref.current?.focus(), 60);
+
+  function openEditKid(kid: { id: string; name: string; avatar: string }) {
+    setEditKidId(kid.id);
+    setEditKidName(kid.name);
+    setEditKidAvatar(kid.avatar || "🧒");
+  }
+
+  function saveKidEdit() {
+    const kid = kids.find((k) => k.id === editKidId);
+    if (!kid) {
+      setEditKidId(null);
+      return;
+    }
+    if (!editKidName.trim()) {
+      Alert.alert("Missing name", "Please type the kid's name.");
+      return;
+    }
+    updateKid({ ...kid, name: editKidName.trim(), avatar: editKidAvatar });
+    setEditKidId(null);
+    showToast(`✅ ${capitalizeWords(editKidName.trim())} is updated.`);
+  }
 
   function handleAdd() {
     if (!name.trim() || pin.length !== 4 || !/^[0-9]{4}$/.test(pin)) {
@@ -287,7 +316,7 @@ export default function ParentDashboard() {
       setSetupPin("");
       setSetupConfirmPin("");
       setParentPinInput("");
-      Alert.alert("Saved ✅", "Your parent PIN is set.");
+      showToast("✅ Your parent PIN is saved.");
     } catch (error) {
       console.error("Error saving parent PIN:", error);
       Alert.alert("Couldn't save", "Please try again.");
@@ -311,7 +340,7 @@ export default function ParentDashboard() {
       setKidPinModalVisible(false);
       setKidToResetId(null);
       setKidPinInput("");
-      Alert.alert("Saved ✅", `${kid.name}'s PIN has been changed.`);
+      showToast(`✅ ${kid.name}'s PIN is changed.`);
     } catch (error) {
       console.error("Error resetting kid PIN", error);
       Alert.alert("Couldn't save", "Please try again.");
@@ -461,6 +490,12 @@ export default function ParentDashboard() {
                       </View>
                     </View>
                     <View style={styles.kidActions}>
+                      <TouchableOpacity
+                        style={styles.smallEditBtn}
+                        onPress={() => openEditKid(item)}
+                      >
+                        <Text style={styles.smallEditBtnText}>✏️ Edit</Text>
+                      </TouchableOpacity>
                       <TouchableOpacity
                         style={styles.smallPrimaryBtn}
                         onPress={() => {
@@ -698,12 +733,8 @@ export default function ParentDashboard() {
                 onChangeText={setName}
                 style={styles.input}
               />
-              <TextInput
-                placeholder="Avatar (emoji)"
-                value={avatar}
-                onChangeText={setAvatar}
-                style={styles.input}
-              />
+              <Text style={styles.fieldLabel}>Choose a picture</Text>
+              <AvatarPicker value={avatar} onChange={setAvatar} />
               <TextInput
                 placeholder="4-digit PIN"
                 value={pin}
@@ -721,6 +752,34 @@ export default function ParentDashboard() {
                 <TouchableOpacity
                   style={[styles.btn, { flex: 1, backgroundColor: "#ccc" }]}
                   onPress={() => setModalVisible(false)}
+                >
+                  <Text style={[styles.btnText, { color: "#000" }]}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        <Modal visible={editKidId !== null} transparent animationType="slide">
+          <View style={styles.modalBack}>
+            <View style={styles.modalCard}>
+              <Text style={styles.modalTitle}>Edit Kid</Text>
+              <Text style={styles.fieldLabel}>Name</Text>
+              <TextInput
+                placeholder="Name"
+                value={editKidName}
+                onChangeText={setEditKidName}
+                style={styles.input}
+              />
+              <Text style={styles.fieldLabel}>Choose a picture</Text>
+              <AvatarPicker value={editKidAvatar} onChange={setEditKidAvatar} />
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                <TouchableOpacity style={[styles.btn, { flex: 1 }]} onPress={saveKidEdit}>
+                  <Text style={styles.btnText}>Save</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.btn, { flex: 1, backgroundColor: "#ccc" }]}
+                  onPress={() => setEditKidId(null)}
                 >
                   <Text style={[styles.btnText, { color: "#000" }]}>Cancel</Text>
                 </TouchableOpacity>
@@ -935,7 +994,7 @@ export default function ParentDashboard() {
                   style={[styles.btn, { flex: 1, backgroundColor: "#e63946" }]}
                   onPress={() => {
                     if (!penaltyKidId) {
-                      Alert.alert("Select a kid first");
+                      Alert.alert("Choose a kid", "Please tap a kid's name first, then try again.");
                       return;
                     }
                     const pts = Number(penaltyStars) || 1;
@@ -1004,7 +1063,7 @@ export default function ParentDashboard() {
                   style={[styles.bonusBtn, { flex: 1 }]}
                   onPress={() => {
                     if (!bonusKidId) {
-                      Alert.alert("Select a kid first");
+                      Alert.alert("Choose a kid", "Please tap a kid's name first, then try again.");
                       return;
                     }
                     const stars = Number(bonusStars) || 1;
@@ -1057,10 +1116,7 @@ export default function ParentDashboard() {
                   onPress={() => {
                     resetCompetition();
                     setResetModalVisible(false);
-                    Alert.alert(
-                      "New challenge started 🚀",
-                      "Everyone's stars are back to zero. Good luck!",
-                    );
+                    showToast("🚀 New challenge started. Everyone's stars are back to zero.");
                   }}
                 >
                   <Text style={styles.btnText}>Confirm & Reset</Text>
@@ -1305,6 +1361,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: spacing.md,
   },
+  smallEditBtn: { ...PILL_BTN, backgroundColor: palette.infoSoft },
+  smallEditBtnText: { color: colors.info, fontWeight: "800", fontSize: 13 },
   smallPrimaryBtn: { ...PILL_BTN, backgroundColor: colors.primary },
   smallPrimaryBtnText: { color: colors.onPrimary, fontWeight: "800", fontSize: 13 },
   smallPenaltyBtn: { ...PILL_BTN, backgroundColor: colors.danger },
@@ -1352,6 +1410,7 @@ const styles = StyleSheet.create({
     ...shadows.lg,
   },
   modalTitle: { fontSize: 20, fontWeight: "800", marginBottom: spacing.md, color: colors.text },
+  fieldLabel: { fontSize: 13, fontWeight: "700", color: colors.textMuted, marginBottom: spacing.xs },
   input: {
     borderWidth: 1.5,
     borderColor: colors.border,

@@ -17,7 +17,7 @@ export default function ResetPasswordScreen() {
 
     const resetPassword = async () => {
         if (!email) {
-            Alert.alert("Missing email", "Please enter your email address.");
+            Alert.alert("Type your email", "Please type the email you used to register, then tap the button again.");
             return;
         }
 
@@ -26,7 +26,10 @@ export default function ResetPasswordScreen() {
         try {
             await withLoading(async () => {
                 await sendPasswordResetEmail(auth, email.trim());
-                router.replace("/screens/ResetPasswordConfirmationScreen");
+                router.replace({
+                    pathname: "/screens/ResetPasswordConfirmationScreen",
+                    params: { email: email.trim() },
+                });
             });
         } catch (error: any) {
             console.error("Password reset error:", error);
@@ -36,8 +39,19 @@ export default function ResetPasswordScreen() {
                 Alert.alert("Invalid email", "Please enter a valid email address.");
             } else if (error?.code === "auth/user-not-found") {
                 Alert.alert(
-                    "Account not found",
-                    "We couldn't find an account with this email. Please sign up first."
+                    "You are not registered yet",
+                    "This email does not have an account.\n\n1. Tap \"Register\" below.\n2. Make your account.\n3. Then log in.",
+                    [
+                        { text: "Try again", style: "cancel" },
+                        {
+                            text: "Register",
+                            onPress: () =>
+                                router.replace({
+                                    pathname: "/screens/RegisterScreen",
+                                    params: { email: email.trim() },
+                                }),
+                        },
+                    ]
                 );
             } else {
                 Alert.alert(

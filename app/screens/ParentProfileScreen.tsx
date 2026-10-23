@@ -18,6 +18,7 @@ import { Alert, AppState, Pressable, StyleSheet, View } from "react-native";
 import ScreenHeader from "../components/ScreenHeader";
 import { useKids } from "../context/KidContext";
 import { useLoading } from "../context/LoadingContext";
+import { useToast } from "../context/ToastContext";
 import { capitalizeWords, joinNames } from "../utils/textUtils";
 
 export default function ParentProfileScreen() {
@@ -35,6 +36,7 @@ export default function ParentProfileScreen() {
         }
       : null;
   const { showLoading, hideLoading } = useLoading();
+  const { showToast } = useToast();
   const [parentName, setParentName] = useState("");
   const [email, setEmail] = useState(auth.currentUser?.email ?? "");
   const [currentPassword, setCurrentPassword] = useState("");
@@ -150,7 +152,7 @@ export default function ParentProfileScreen() {
         { parentName: parentName.trim(), email: currentUser.email },
         { merge: true },
       );
-      Alert.alert("Saved ✅", "Your name has been updated.");
+      showToast("✅ Your name is saved.");
     } catch (error: any) {
       console.error("Profile save failed:", error);
       if (isNetworkError(error)) { alertNetworkError(); } else { Alert.alert("Couldn't save", friendlyErrorMessage(error, "Please try again.")); }
@@ -163,7 +165,7 @@ export default function ParentProfileScreen() {
   const changePassword = async () => {
     const user = auth.currentUser;
     if (!user) {
-      Alert.alert("Not signed in", "Please sign in again.");
+      Alert.alert("Please log in again", "Please log out, log in again, and then try this once more.");
       return;
     }
 
@@ -190,7 +192,7 @@ export default function ParentProfileScreen() {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-      Alert.alert("Done ✅", "Your password has been changed.");
+      showToast("✅ Your password is changed.");
     } catch (error: any) {
       console.error("Password update failed:", error);
       if (isNetworkError(error)) { alertNetworkError(); } else { Alert.alert("Couldn't change password", error?.code === "auth/invalid-credential" || error?.code === "auth/wrong-password" ? "Your current password is not correct. Please try again." : friendlyErrorMessage(error, "Please try again.")); }
@@ -203,7 +205,7 @@ export default function ParentProfileScreen() {
   const saveParentPin = async () => {
     const user = auth.currentUser;
     if (!user) {
-      Alert.alert("Not signed in", "Please sign in again.");
+      Alert.alert("Please log in again", "Please log out, log in again, and then try this once more.");
       return;
     }
 
@@ -230,7 +232,7 @@ export default function ParentProfileScreen() {
       setParentPin(newParentPin);
       setNewParentPin("");
       setConfirmParentPin("");
-      Alert.alert("Saved ✅", "Your parent PIN has been changed.");
+      showToast("✅ Your parent PIN is changed.");
     } catch (error: any) {
       console.error("Parent PIN save failed:", error);
       if (isNetworkError(error)) { alertNetworkError(); } else { Alert.alert("Couldn't save", friendlyErrorMessage(error, "Please try again.")); }
@@ -252,9 +254,9 @@ export default function ParentProfileScreen() {
     });
 
     if (changed) {
-      Alert.alert("Saved ✅", "The kids' PINs have been changed.");
+      showToast("✅ The kids' PINs are saved.");
     } else {
-      Alert.alert("Nothing to save", "You didn't change any PIN.");
+      showToast("You didn't change any PIN.");
     }
   };
 
@@ -287,7 +289,7 @@ export default function ParentProfileScreen() {
   const deleteAccount = async () => {
     const user = auth.currentUser;
     if (!user) {
-      Alert.alert("Not signed in", "Please sign in again.");
+      Alert.alert("Please log in again", "Please log out, log in again, and then try this once more.");
       return;
     }
 
@@ -308,7 +310,7 @@ export default function ParentProfileScreen() {
       await deleteDoc(doc(db, "parents", user.uid));
       await deleteUser(user);
       closeDeleteModal();
-      Alert.alert("Account deleted", "Your account and all your family's data have been removed.");
+      showToast("Your account and all your family's data are deleted.");
       router.replace("/screens/LoginScreen");
     } catch (error: any) {
       console.error("Account deletion failed:", error);

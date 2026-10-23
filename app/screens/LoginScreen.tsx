@@ -10,6 +10,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert } from "react-native";
 import AuthScreen from "../components/AuthScreen";
 import { useLoading } from "../context/LoadingContext";
+import { useToast } from "../context/ToastContext";
 import { friendlyErrorMessage } from "../utils/errorUtils";
 import { alertNetworkError, checkInternet, isNetworkError } from "../utils/netUtils";
 
@@ -19,6 +20,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const { showLoading, hideLoading } = useLoading();
+  const { showToast } = useToast();
   const navigatedRef = useRef(false);
 
   // Both loginParent and the auth listener below reach this after a successful
@@ -64,6 +66,11 @@ export default function LoginScreen() {
     return unsubscribe;
   }, [goHome, hideLoading]);
 
+  // Carry the typed email over so the user doesn't have to type it again.
+  const goRegister = () =>
+    router.replace({ pathname: "/screens/RegisterScreen", params: { email: email.trim() } });
+  const goForgotPassword = () => router.push("/screens/ResetPasswordScreen");
+
   const loginParent = async () => {
     if (!email || !password) {
       Alert.alert(t("login.missing_title"), t("login.missing_msg"));
@@ -94,10 +101,7 @@ export default function LoginScreen() {
                 showLoading();
                 try {
                   await sendEmailVerification(unverifiedUser);
-                  Alert.alert(
-                    t("login.email_sent_title"),
-                    t("login.email_sent_msg", { email: email.trim() })
-                  );
+                  showToast(t("login.email_sent_msg", { email: email.trim() }));
                 } catch (resendError: any) {
                   if (isNetworkError(resendError)) {
                     alertNetworkError();
@@ -134,18 +138,23 @@ export default function LoginScreen() {
       if (isNetworkError(error)) {
         alertNetworkError();
       } else if (error?.code === "auth/user-not-found") {
-        Alert.alert(
-          t("login.not_found_title"),
-          t("login.not_found_msg")
-        );
-      } else if (
-        error?.code === "auth/wrong-password" ||
-        error?.code === "auth/invalid-credential"
-      ) {
-        Alert.alert(
-          t("login.wrong_title"),
-          t("login.wrong_msg")
-        );
+        Alert.alert(t("login.not_registered_title"), t("login.not_registered_msg"), [
+          { text: t("login.try_again"), style: "cancel" },
+          { text: t("login.register_btn"), onPress: goRegister },
+        ]);
+      } else if (error?.code === "auth/wrong-password") {
+        Alert.alert(t("login.wrong_password_title"), t("login.wrong_password_msg"), [
+          { text: t("login.try_again"), style: "cancel" },
+          { text: t("login.forgot_btn"), onPress: goForgotPassword },
+        ]);
+      } else if (error?.code === "auth/invalid-credential") {
+        // Firebase gives this same code for "no account" and "wrong password",
+        // so guide the user to both options.
+        Alert.alert(t("login.cant_login_title"), t("login.cant_login_msg"), [
+          { text: t("login.try_again"), style: "cancel" },
+          { text: t("login.forgot_btn"), onPress: goForgotPassword },
+          { text: t("login.register_btn"), onPress: goRegister },
+        ]);
       } else if (error?.code === "auth/invalid-email") {
         Alert.alert(t("login.invalid_email_title"), t("login.invalid_email_msg"));
       } else if (error?.code === "auth/too-many-requests") {
@@ -176,7 +185,7 @@ export default function LoginScreen() {
             variant="ghost"
             size="sm"
             haptic={false}
-            onPress={() => router.push("/screens/ResetPasswordScreen")}
+            onPress={goForgotPassword}
           />
           <Button
             title={t("login.register_link")}

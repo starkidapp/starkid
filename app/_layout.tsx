@@ -23,6 +23,7 @@ import { auth, db } from "../lib/firebase/config";
 import { loadSavedLocale } from "../lib/i18n";
 import { KidProvider } from "./context/KidContext";
 import { LoadingProvider } from "./context/LoadingContext";
+import { ToastProvider } from "./context/ToastContext";
 import { LocaleProvider } from "./context/LocaleContext";
 import MandatoryUpdateScreen from "./screens/MandatoryUpdateScreen";
 import { isVersionLower } from "./utils/versionUtils";
@@ -37,7 +38,9 @@ SplashScreen.setOptions({ fade: true, duration: 250 });
 // manifest orientation locks on large screens and Play flags them.
 const { width, height } = Dimensions.get("screen");
 if (Math.min(width, height) < 600) {
-  ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
+  ScreenOrientation.lockAsync(
+    ScreenOrientation.OrientationLock.PORTRAIT_UP,
+  ).catch(() => {});
 }
 
 // Defined at module scope so it is not remounted on every RootLayout render
@@ -73,7 +76,8 @@ function StartupManager({
           try {
             const parentRef = doc(db, "parents", firebaseUser.uid);
             const parentSnap = await getDoc(parentRef);
-            const isVerifiedByFlag = parentSnap.exists() && parentSnap.data()?.emailVerified === true;
+            const isVerifiedByFlag =
+              parentSnap.exists() && parentSnap.data()?.emailVerified === true;
             const isVerifiedByAuth = firebaseUser.emailVerified === true;
 
             // if (!isVerifiedByFlag && !isVerifiedByAuth) {
@@ -85,7 +89,9 @@ function StartupManager({
             // }
             if (!isVerifiedByFlag && !isVerifiedByAuth) {
               if ((global as any).isRegistering) {
-                console.log("Registration in progress, skipping unverified sign out");
+                console.log(
+                  "Registration in progress, skipping unverified sign out",
+                );
                 onDone();
                 return;
               }
@@ -191,48 +197,50 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <LocaleProvider>
         <LoadingProvider>
-          <KidProvider>
-            {!initialized && (
-              <StartupManager
-                onDone={finishStartup}
-                onUser={setUser}
-                checkAppVersion={checkAppVersion}
-              />
-            )}
+          <ToastProvider>
+            <KidProvider>
+              {!initialized && (
+                <StartupManager
+                  onDone={finishStartup}
+                  onUser={setUser}
+                  checkAppVersion={checkAppVersion}
+                />
+              )}
 
-            {!initialized || !fontsLoaded || !localeReady ? (
-              // while StartupManager / fonts load, show the full-screen theme
-              <ThemeSplash />
-            ) : forceUpdate ? (
-              <MandatoryUpdateScreen
-                appStoreUrl={storeLinks.appStoreUrl}
-                playStoreUrl={storeLinks.playStoreUrl}
-              />
-            ) : (
-              <Stack screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="index" />
-                {user ? (
-                  <>
-                    <Stack.Screen name="(tabs)" />
-                    <Stack.Screen name="screens/ParentProfileScreen" />
-                    <Stack.Screen name="screens/ContactSupportScreen" />
-                    <Stack.Screen name="screens/FaqScreen" />
-                    <Stack.Screen name="screens/TermsAndConditionsScreen" />
-                    <Stack.Screen name="screens/LicensesScreen" />
-                    <Stack.Screen name="screens/AboutUsScreen" />
-                    <Stack.Screen name="screens/PrivacyPolicyScreen" />
-                  </>
-                ) : (
-                  <>
-                    <Stack.Screen name="screens/LoginScreen" />
-                    <Stack.Screen name="screens/RegisterScreen" />
-                    <Stack.Screen name="screens/ResetPasswordScreen" />
-                    <Stack.Screen name="screens/ResetPasswordConfirmationScreen" />
-                  </>
-                )}
-              </Stack>
-            )}
-          </KidProvider>
+              {!initialized || !fontsLoaded || !localeReady ? (
+                // while StartupManager / fonts load, show the full-screen theme
+                <ThemeSplash />
+              ) : forceUpdate ? (
+                <MandatoryUpdateScreen
+                  appStoreUrl={storeLinks.appStoreUrl}
+                  playStoreUrl={storeLinks.playStoreUrl}
+                />
+              ) : (
+                <Stack screenOptions={{ headerShown: false }}>
+                  <Stack.Screen name="index" />
+                  {user ? (
+                    <>
+                      <Stack.Screen name="(tabs)" />
+                      <Stack.Screen name="screens/ParentProfileScreen" />
+                      <Stack.Screen name="screens/ContactSupportScreen" />
+                      <Stack.Screen name="screens/FaqScreen" />
+                      <Stack.Screen name="screens/TermsAndConditionsScreen" />
+                      <Stack.Screen name="screens/LicensesScreen" />
+                      <Stack.Screen name="screens/AboutUsScreen" />
+                      <Stack.Screen name="screens/PrivacyPolicyScreen" />
+                    </>
+                  ) : (
+                    <>
+                      <Stack.Screen name="screens/LoginScreen" />
+                      <Stack.Screen name="screens/RegisterScreen" />
+                      <Stack.Screen name="screens/ResetPasswordScreen" />
+                      <Stack.Screen name="screens/ResetPasswordConfirmationScreen" />
+                    </>
+                  )}
+                </Stack>
+              )}
+            </KidProvider>
+          </ToastProvider>
           <LoadingOverlay />
           <NoInternetBanner />
         </LoadingProvider>

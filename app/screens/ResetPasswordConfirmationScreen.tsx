@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { Alert } from "react-native";
 import AuthScreen from "../components/AuthScreen";
+import { useToast } from "../context/ToastContext";
 import { useLoading, useWithLoading } from "../context/LoadingContext";
 import { friendlyErrorMessage } from "../utils/errorUtils";
 
@@ -13,6 +14,7 @@ export default function ResetPasswordConfirmationScreen() {
     const email = typeof rawEmail === "string" ? rawEmail : Array.isArray(rawEmail) ? rawEmail[0] : "";
     const { loading } = useLoading();
     const withLoading = useWithLoading();
+    const { showToast } = useToast();
 
     const resendEmail = async () => {
         if (!email) {
@@ -25,10 +27,7 @@ export default function ResetPasswordConfirmationScreen() {
                 await sendPasswordResetEmail(auth, email);
             });
 
-            Alert.alert(
-                "Email sent",
-                "We sent the link again. Can't find it? Check your Spam folder.",
-            );
+            showToast("✅ We sent the link again. Can't find it? Look in your Spam folder.");
         } catch (error: any) {
             console.error("Resend error:", error);
             Alert.alert(
@@ -41,7 +40,7 @@ export default function ResetPasswordConfirmationScreen() {
     return (
         <AuthScreen
             title="Check your email 📬"
-            subtitle="We sent a password reset link to your inbox. Open it and follow the instructions to set a new password."
+            subtitle={"1. Open your email inbox.\n2. Tap the link in the email we sent you.\n3. Type your new password.\n4. Come back here and log in with the new password.\n\nCan't find the email? Look in your Spam folder."}
             footer={
                 <Button
                     title="Back to login"

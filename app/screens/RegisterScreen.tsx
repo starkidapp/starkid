@@ -3,7 +3,7 @@
 import { Button, TextField } from "@/components/ui";
 import { auth, db } from "@/lib/firebase/config";
 import { t } from "@/lib/i18n";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { createUserWithEmailAndPassword, sendEmailVerification, signOut } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { useState } from "react";
@@ -16,7 +16,8 @@ import { alertNetworkError, checkInternet, isNetworkError } from "../utils/netUt
 export default function RegisterScreen() {
   const router = useRouter();
   const [parentName, setParentName] = useState("");
-  const [email, setEmail] = useState("");
+  const params = useLocalSearchParams<{ email?: string }>();
+  const [email, setEmail] = useState(typeof params.email === "string" ? params.email : "");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);

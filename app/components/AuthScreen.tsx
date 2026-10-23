@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import { Image, StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText, Card, Screen } from "@/components/ui";
 import { spacing } from "@/constants/theme";
 import LanguageSwitcher from "./LanguageSwitcher";
@@ -21,45 +22,69 @@ export default function AuthScreen({
   footer,
   showLogo = true,
 }: AuthScreenProps) {
+  const insets = useSafeAreaInsets();
+
   return (
-    <Screen scroll center contentContainerStyle={styles.content}>
-      <LanguageSwitcher style={styles.language} />
-      {showLogo ? (
-        <View style={styles.logoWrap}>
-          <Image
-            source={require("../../assets/images/starbo-logo.png")}
-            style={styles.logo}
-            resizeMode="contain"
-          />
-        </View>
-      ) : null}
+    <View style={styles.root}>
+      <Screen scroll center contentContainerStyle={styles.content}>
+        {showLogo ? (
+          <View style={styles.logoWrap}>
+            <Image
+              source={require("../../assets/images/starbo-logo.png")}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+          </View>
+        ) : null}
 
-      <AppText variant="title" align="center">
-        {title}
-      </AppText>
-      {subtitle ? (
-        <AppText
-          variant="body"
-          color="textMuted"
-          align="center"
-          style={styles.subtitle}
-        >
-          {subtitle}
+        <AppText variant="title" align="center">
+          {title}
         </AppText>
-      ) : null}
+        {subtitle ? (
+          <AppText
+            variant="body"
+            color="textMuted"
+            align="center"
+            style={styles.subtitle}
+          >
+            {subtitle}
+          </AppText>
+        ) : null}
 
-      <Card style={styles.card} padding="2xl">
-        {children}
-      </Card>
+        <Card style={styles.card} padding="2xl">
+          {children}
+        </Card>
 
-      {footer ? <View style={styles.footer}>{footer}</View> : null}
-    </Screen>
+        {footer ? <View style={styles.footer}>{footer}</View> : null}
+      </Screen>
+
+      {/* Pinned to the top-right corner (also in Arabic/RTL mode). */}
+      <View
+        pointerEvents="box-none"
+        style={[styles.languageBar, { top: insets.top + spacing.sm }]}
+      >
+        <LanguageSwitcher />
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { gap: spacing.sm, paddingVertical: spacing["3xl"] },
-  language: { alignSelf: "flex-end" },
+  root: { flex: 1 },
+  // Extra top room so the logo never sits under the language toggle.
+  content: {
+    gap: spacing.sm,
+    paddingTop: spacing["4xl"] + spacing["2xl"],
+    paddingBottom: spacing["3xl"],
+  },
+  languageBar: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    direction: "ltr",
+    alignItems: "flex-end",
+    paddingHorizontal: spacing.xl,
+  },
   logoWrap: {
     alignSelf: "center",
     marginBottom: spacing.md,
