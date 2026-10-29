@@ -20,7 +20,7 @@ import LoadingOverlay from "../components/LoadingOverlay";
 import NoInternetBanner from "../components/NoInternetBanner";
 import ThemeSplash, { hideNativeSplash } from "../components/ThemeSplash";
 import { auth, db } from "../lib/firebase/config";
-import { loadSavedLocale } from "../lib/i18n";
+import { AppLocale, currentLocale, loadSavedLocale } from "../lib/i18n";
 import { KidProvider } from "./context/KidContext";
 import { LoadingProvider } from "./context/LoadingContext";
 import { ToastProvider } from "./context/ToastContext";
@@ -134,11 +134,12 @@ export default function RootLayout() {
   const [initialized, setInitialized] = useState(false);
   const [forceUpdate, setForceUpdate] = useState(false);
   const [user, setUser] = useState<User | null>(null);
-  const [localeReady, setLocaleReady] = useState(false);
+  const [locale, setLocale] = useState<AppLocale | null>(null);
+  const localeReady = locale !== null;
 
   // Apply the saved language before any screen renders its strings.
   useEffect(() => {
-    loadSavedLocale().finally(() => setLocaleReady(true));
+    loadSavedLocale().finally(() => setLocale(currentLocale()));
   }, []);
 
   const [fontsLoaded] = useFonts({
@@ -195,7 +196,7 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <LocaleProvider>
+      <LocaleProvider locale={locale ?? currentLocale()}>
         <LoadingProvider>
           <ToastProvider>
             <KidProvider>

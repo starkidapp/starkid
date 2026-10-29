@@ -2,7 +2,6 @@
 import { AppText, Badge, IconButton } from "@/components/ui";
 import { colors, palette, radii, shadows, spacing } from "@/constants/theme";
 import { auth, db } from "@/lib/firebase/config";
-import { t } from "@/lib/i18n";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { signOut } from "firebase/auth";
@@ -12,10 +11,12 @@ import { Alert, Image, Pressable, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import { useKids } from "../context/KidContext";
+import { useLocale } from "../context/LocaleContext";
 import { useLoading, useWithLoading } from "../context/LoadingContext";
 import { capitalizeWords } from "../utils/textUtils";
 
 export default function HomeScreen() {
+  const { t } = useLocale();
   const router = useRouter();
   const { kids } = useKids();
   const [parentName, setParentName] = useState("");

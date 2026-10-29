@@ -41,3 +41,10 @@ app-example
 # generated native folders
 /ios
 /android
+
+# Store build downloads
+*.aab
+*.ipa
+
+# Firebase hosting cache
+.firebase/

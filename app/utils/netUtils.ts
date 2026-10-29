@@ -1,12 +1,12 @@
 import NetInfo from "@react-native-community/netinfo";
 import { Alert } from "react-native";
+import { t } from "@/lib/i18n";
 
-const NO_INTERNET_MSG = "Please turn on Wi-Fi or mobile data, then try again.";
 
 export async function checkInternet(): Promise<boolean> {
   const state = await NetInfo.fetch();
   if (!state.isConnected) {
-    Alert.alert("No internet", NO_INTERNET_MSG);
+    Alert.alert(t("net.no_internet"), t("net.no_internet_msg"));
     return false;
   }
   return true;
@@ -25,5 +25,5 @@ export function isNetworkError(error: any): boolean {
 }
 
 export function alertNetworkError() {
-  Alert.alert("No internet", NO_INTERNET_MSG);
+  Alert.alert(t("net.no_internet"), t("net.no_internet_msg"));
 }

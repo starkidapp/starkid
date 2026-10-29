@@ -5,6 +5,7 @@ import { Image, StyleSheet, View } from 'react-native';
 import { AppText, ListRow, Screen, SectionHeader } from '@/components/ui';
 import { palette, radii, shadows, spacing } from '@/constants/theme';
 import ScreenHeader from '../components/ScreenHeader';
+import { t } from "@/lib/i18n";
 
 export default function ExploreScreen() {
   const appVersion = Application.nativeApplicationVersion || '1.0.0';
@@ -12,7 +13,7 @@ export default function ExploreScreen() {
 
   return (
     <View style={{ flex: 1 }}>
-      <ScreenHeader title="Explore" showBackButton={false} />
+      <ScreenHeader title={t("explore.title")} showBackButton={false} />
       <Screen scroll topInset={false} contentContainerStyle={styles.content}>
         <LinearGradient
           colors={[palette.primary, palette.primaryDark]}
@@ -26,75 +27,75 @@ export default function ExploreScreen() {
             resizeMode="contain"
           />
           <AppText variant="title" color="#fff" align="center">
-            Welcome to StarBo
+            {t("explore.welcome")}
           </AppText>
           <AppText variant="caption" color="rgba(255,255,255,0.9)" align="center" style={styles.heroSub}>
-            Your guide to rewards and achievements
+            {t("explore.welcome_sub")}
           </AppText>
         </LinearGradient>
 
         <View style={styles.section}>
-          <SectionHeader title="Get Support" emoji="💬" />
+          <SectionHeader title={t("explore.support")} emoji="💬" />
           <View style={styles.rows}>
             <ListRow
               emoji="📧"
               iconTone="info"
-              title="Contact Support"
-              subtitle="Need help? Get in touch with our team"
+              title={t("explore.contact")}
+              subtitle={t("explore.contact_sub")}
               onPress={() => go('/screens/ContactSupportScreen')}
             />
             <ListRow
               emoji="❓"
               iconTone="accent"
-              title="FAQ & Help"
-              subtitle="Find answers to common questions"
+              title={t("explore.faq")}
+              subtitle={t("explore.faq_sub")}
               onPress={() => go('/screens/FaqScreen')}
             />
           </View>
         </View>
 
         <View style={styles.section}>
-          <SectionHeader title="Legal & Policies" emoji="📋" />
+          <SectionHeader title={t("explore.legal")} emoji="📋" />
           <View style={styles.rows}>
             <ListRow
               emoji="🔒"
               iconTone="primary"
-              title="Privacy Policy"
-              subtitle="How we protect your information"
+              title={t("explore.privacy")}
+              subtitle={t("explore.privacy_sub")}
               onPress={() => go('/screens/PrivacyPolicyScreen')}
             />
             <ListRow
               emoji="📜"
               iconTone="success"
-              title="Terms & Conditions"
-              subtitle="Our terms of service"
+              title={t("explore.terms")}
+              subtitle={t("explore.terms_sub")}
               onPress={() => go('/screens/TermsAndConditionsScreen')}
             />
           </View>
         </View>
 
         <View style={styles.section}>
-          <SectionHeader title="About StarBo" emoji="ℹ️" />
+          <SectionHeader title={t("explore.about")} emoji="ℹ️" />
           <View style={styles.rows}>
             <ListRow
               emoji="🚀"
               iconTone="star"
-              title="Our Story"
-              subtitle="Learn about our mission and vision"
+              title={t("explore.story")}
+              subtitle={t("explore.story_sub")}
               onPress={() => go('/screens/AboutUsScreen')}
             />
             <ListRow
               emoji="🎉"
               iconTone="neutral"
-              title="Version"
-              subtitle={`StarBo v${appVersion}`}
+              title={t("explore.version")}
+              subtitle={t('explore.version_value', { version: appVersion })}
               showChevron={false}
             />
           </View>
         </View>
 
         <AppText variant="caption" color="textFaint" align="center" style={styles.footer}>
-          Made with 💚 for families everywhere{'\n'}© 2026 StarBo. All rights reserved.
+          {t("explore.footer")}
         </AppText>
       </Screen>
     </View>

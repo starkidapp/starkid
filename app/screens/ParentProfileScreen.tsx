@@ -20,6 +20,7 @@ import { useKids } from "../context/KidContext";
 import { useLoading } from "../context/LoadingContext";
 import { useToast } from "../context/ToastContext";
 import { capitalizeWords, joinNames } from "../utils/textUtils";
+import { t } from "@/lib/i18n";
 
 export default function ParentProfileScreen() {
   const { fromParentDashboard } = useLocalSearchParams();
@@ -139,7 +140,7 @@ export default function ParentProfileScreen() {
     const currentUser = auth.currentUser;
     if (!currentUser) return;
     if (!canSaveParentName) {
-      Alert.alert("Missing name", "Please enter your name.");
+      Alert.alert(t("profile.missing_name"), t("profile.missing_name_msg"));
       return;
     }
 
@@ -152,10 +153,10 @@ export default function ParentProfileScreen() {
         { parentName: parentName.trim(), email: currentUser.email },
         { merge: true },
       );
-      showToast("✅ Your name is saved.");
+      showToast(t("profile.name_saved"));
     } catch (error: any) {
       console.error("Profile save failed:", error);
-      if (isNetworkError(error)) { alertNetworkError(); } else { Alert.alert("Couldn't save", friendlyErrorMessage(error, "Please try again.")); }
+      if (isNetworkError(error)) { alertNetworkError(); } else { Alert.alert(t("profile.save_failed"), friendlyErrorMessage(error, t("profile.try_again"))); }
     } finally {
       setSavingParentName(false);
       hideLoading();
@@ -165,17 +166,17 @@ export default function ParentProfileScreen() {
   const changePassword = async () => {
     const user = auth.currentUser;
     if (!user) {
-      Alert.alert("Please log in again", "Please log out, log in again, and then try this once more.");
+      Alert.alert(t("profile.login_again"), t("profile.login_again_msg"));
       return;
     }
 
     if (!currentPassword || !newPassword || !confirmPassword) {
-      Alert.alert("Missing details", "Please fill in all the password boxes.");
+      Alert.alert(t("profile.missing_details"), t("profile.fill_passwords"));
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      Alert.alert("Passwords don't match", "Please type the same new password in both boxes.");
+      Alert.alert(t("profile.passwords_mismatch"), t("profile.passwords_mismatch_msg"));
       return;
     }
 
@@ -192,10 +193,10 @@ export default function ParentProfileScreen() {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-      showToast("✅ Your password is changed.");
+      showToast(t("profile.password_changed"));
     } catch (error: any) {
       console.error("Password update failed:", error);
-      if (isNetworkError(error)) { alertNetworkError(); } else { Alert.alert("Couldn't change password", error?.code === "auth/invalid-credential" || error?.code === "auth/wrong-password" ? "Your current password is not correct. Please try again." : friendlyErrorMessage(error, "Please try again.")); }
+      if (isNetworkError(error)) { alertNetworkError(); } else { Alert.alert(t("profile.password_change_failed"), error?.code === "auth/invalid-credential" || error?.code === "auth/wrong-password" ? t("profile.current_password_wrong") : friendlyErrorMessage(error, t("profile.try_again"))); }
     } finally {
       setSavingPassword(false);
       hideLoading();
@@ -205,17 +206,17 @@ export default function ParentProfileScreen() {
   const saveParentPin = async () => {
     const user = auth.currentUser;
     if (!user) {
-      Alert.alert("Please log in again", "Please log out, log in again, and then try this once more.");
+      Alert.alert(t("profile.login_again"), t("profile.login_again_msg"));
       return;
     }
 
     if (!/^[0-9]{4}$/.test(newParentPin)) {
-      Alert.alert("Check the PIN", "The PIN must be 4 numbers.");
+      Alert.alert(t("profile.check_pin"), t("profile.check_pin_msg"));
       return;
     }
 
     if (newParentPin !== confirmParentPin) {
-      Alert.alert("PINs don't match", "Please type the same PIN in both boxes.");
+      Alert.alert(t("profile.pins_mismatch"), t("profile.pins_mismatch_msg"));
       return;
     }
 
@@ -232,10 +233,10 @@ export default function ParentProfileScreen() {
       setParentPin(newParentPin);
       setNewParentPin("");
       setConfirmParentPin("");
-      showToast("✅ Your parent PIN is changed.");
+      showToast(t("profile.parent_pin_changed"));
     } catch (error: any) {
       console.error("Parent PIN save failed:", error);
-      if (isNetworkError(error)) { alertNetworkError(); } else { Alert.alert("Couldn't save", friendlyErrorMessage(error, "Please try again.")); }
+      if (isNetworkError(error)) { alertNetworkError(); } else { Alert.alert(t("profile.save_failed"), friendlyErrorMessage(error, t("profile.try_again"))); }
     } finally {
       setSavingParentPin(false);
       hideLoading();
@@ -254,9 +255,9 @@ export default function ParentProfileScreen() {
     });
 
     if (changed) {
-      showToast("✅ The kids' PINs are saved.");
+      showToast(t("profile.kid_pins_saved"));
     } else {
-      showToast("You didn't change any PIN.");
+      showToast(t("profile.no_pin_change"));
     }
   };
 
@@ -266,7 +267,7 @@ export default function ParentProfileScreen() {
       setAuthModalVisible(false);
       setParentPinInputAttempt("");
     } else {
-      Alert.alert("Wrong PIN", "That PIN is not correct. Please try again.");
+      Alert.alert(t("profile.wrong_pin"), t("profile.wrong_pin_msg"));
       setParentPinInputAttempt("");
     }
   };
@@ -289,12 +290,12 @@ export default function ParentProfileScreen() {
   const deleteAccount = async () => {
     const user = auth.currentUser;
     if (!user) {
-      Alert.alert("Please log in again", "Please log out, log in again, and then try this once more.");
+      Alert.alert(t("profile.login_again"), t("profile.login_again_msg"));
       return;
     }
 
     if (!deletePassword) {
-      Alert.alert("Missing password", "Please enter your password to continue.");
+      Alert.alert(t("profile.missing_password"), t("profile.missing_password_msg"));
       return;
     }
 
@@ -310,11 +311,11 @@ export default function ParentProfileScreen() {
       await deleteDoc(doc(db, "parents", user.uid));
       await deleteUser(user);
       closeDeleteModal();
-      showToast("Your account and all your family's data are deleted.");
+      showToast(t("profile.account_deleted"));
       router.replace("/screens/LoginScreen");
     } catch (error: any) {
       console.error("Account deletion failed:", error);
-      if (isNetworkError(error)) { alertNetworkError(); } else { Alert.alert("Couldn't delete account", error?.code === "auth/invalid-credential" || error?.code === "auth/wrong-password" ? "Your password is not correct. Please try again." : friendlyErrorMessage(error, "Please try again.")); }
+      if (isNetworkError(error)) { alertNetworkError(); } else { Alert.alert(t("profile.delete_failed"), error?.code === "auth/invalid-credential" || error?.code === "auth/wrong-password" ? t("profile.password_wrong") : friendlyErrorMessage(error, t("profile.try_again"))); }
     } finally {
       setDeletingAccount(false);
       hideLoading();
@@ -329,7 +330,7 @@ export default function ParentProfileScreen() {
   return (
     <View style={styles.screen}>
       <ScreenHeader
-        title="Parent Profile"
+        title={t("profile.title")}
         right={
           leader ? (
             <Pressable
@@ -349,7 +350,7 @@ export default function ParentProfileScreen() {
           <View style={styles.avatarCircle}>
             <AppText style={styles.avatarText}>👤</AppText>
           </View>
-          <AppText variant="heading">Parent Profile</AppText>
+          <AppText variant="heading">{t("profile.title")}</AppText>
           <AppText variant="caption" color="textMuted">
             {email}
           </AppText>
@@ -357,18 +358,18 @@ export default function ParentProfileScreen() {
 
         <Card style={styles.card}>
           <AppText variant="subtitle" style={styles.cardTitle}>
-            Profile Info
+            {t("profile.profile_info")}
           </AppText>
           <TextField
-            label="Parent name"
+            label={t("profile.parent_name")}
             value={parentName}
             onChangeText={setParentName}
-            placeholder="Enter parent name"
+            placeholder={t("profile.parent_name_placeholder")}
             leftIcon="person-outline"
           />
-          <TextField label="Email" value={email} editable={false} leftIcon="mail-outline" />
+          <TextField label={t("profile.email")} value={email} editable={false} leftIcon="mail-outline" />
           <Button
-            title={savingParentName ? "Saving…" : "Save Profile"}
+            title={savingParentName ? t("profile.saving") : t("profile.save_profile")}
             onPress={saveParentName}
             loading={savingParentName}
             disabled={!canSaveParentName}
@@ -378,35 +379,35 @@ export default function ParentProfileScreen() {
 
         <Card style={styles.card}>
           <AppText variant="subtitle" style={styles.cardTitle}>
-            Change Password
+            {t("profile.change_password")}
           </AppText>
           <TextField
-            label="Current password"
+            label={t("profile.current_password")}
             value={currentPassword}
             onChangeText={setCurrentPassword}
-            placeholder="Current password"
+            placeholder={t("profile.current_password")}
             secureToggle
             leftIcon="lock-closed-outline"
           />
           <TextField
-            label="New password"
+            label={t("profile.new_password")}
             value={newPassword}
             onChangeText={setNewPassword}
-            placeholder="New password"
+            placeholder={t("profile.new_password")}
             secureToggle
             leftIcon="lock-closed-outline"
           />
           <TextField
-            label="Confirm new password"
+            label={t("profile.confirm_new_password")}
             value={confirmPassword}
             onChangeText={setConfirmPassword}
-            placeholder="Confirm new password"
+            placeholder={t("profile.confirm_new_password")}
             secureToggle
             leftIcon="lock-closed-outline"
-            error={passwordMismatch ? "Passwords do not match" : undefined}
+            error={passwordMismatch ? t("profile.passwords_no_match") : undefined}
           />
           <Button
-            title={savingPassword ? "Updating…" : "Update Password"}
+            title={savingPassword ? t("profile.updating") : t("profile.update_password")}
             variant="secondary"
             onPress={changePassword}
             loading={savingPassword}
@@ -416,15 +417,15 @@ export default function ParentProfileScreen() {
 
         <Card style={styles.card}>
           <AppText variant="subtitle" style={styles.cardTitle}>
-            Parent Access Code
+            {t("profile.access_code")}
           </AppText>
           <AppText variant="caption" color="textMuted" style={styles.cardHint}>
             {parentPin
-              ? "Update the 4-digit parent dashboard access code."
-              : "Set a 4-digit parent dashboard access code."}
+              ? t("profile.update_code_msg")
+              : t("profile.set_code_msg")}
           </AppText>
           <TextField
-            label="New 4-digit code"
+            label={t("profile.new_code")}
             value={newParentPin}
             onChangeText={(v) => setNewParentPin(v.replace(/[^0-9]/g, "").slice(0, 4))}
             placeholder="••••"
@@ -432,17 +433,17 @@ export default function ParentProfileScreen() {
             maxLength={4}
           />
           <TextField
-            label="Confirm 4-digit code"
+            label={t("profile.confirm_code")}
             value={confirmParentPin}
             onChangeText={(v) => setConfirmParentPin(v.replace(/[^0-9]/g, "").slice(0, 4))}
             placeholder="••••"
             keyboardType="number-pad"
             maxLength={4}
-            error={pinMismatch ? "Codes do not match" : undefined}
+            error={pinMismatch ? t("profile.codes_no_match") : undefined}
           />
           <Button
             title={
-              savingParentPin ? "Saving…" : parentPin ? "Update Code" : "Set Code"
+              savingParentPin ? t("profile.saving") : parentPin ? t("profile.update_code") : t("profile.set_code")
             }
             variant="secondary"
             onPress={saveParentPin}
@@ -453,11 +454,11 @@ export default function ParentProfileScreen() {
 
         <Card style={styles.card}>
           <AppText variant="subtitle" style={styles.cardTitle}>
-            Kids&apos; PINs
+            {t("profile.kids_pins")}
           </AppText>
           {kids.length === 0 ? (
             <AppText variant="body" color="textMuted" style={styles.cardHint}>
-              Add kids from the dashboard first.
+              {t("profile.add_kids_first")}
             </AppText>
           ) : (
             kids.map((item) => (
@@ -465,7 +466,7 @@ export default function ParentProfileScreen() {
                 <View style={{ flex: 1 }}>
                   <AppText variant="bodyStrong">{capitalizeWords(item.name)}</AppText>
                   <AppText variant="caption" color="textMuted">
-                    PIN can be updated here.
+                    {t("profile.pin_hint")}
                   </AppText>
                 </View>
                 <TextField
@@ -475,18 +476,18 @@ export default function ParentProfileScreen() {
                     setKidPins((prev) => ({ ...prev, [item.id]: v.replace(/[^0-9]/g, "").slice(0, 4) }))
                   }
                   keyboardType="number-pad"
-                  placeholder="PIN"
+                  placeholder={t("profile.pin")}
                   maxLength={4}
                   textAlign="center"
                 />
               </View>
             ))
           )}
-          <Button title="Save Kid PINs" onPress={saveKidPins} fullWidth />
+          <Button title={t("profile.save_kid_pins")} onPress={saveKidPins} fullWidth />
         </Card>
 
         <Button
-          title="Sign Out"
+          title={t("profile.sign_out")}
           variant="danger"
           onPress={handleSignOut}
           fullWidth
@@ -494,7 +495,7 @@ export default function ParentProfileScreen() {
         />
 
         <Button
-          title="Delete Account"
+          title={t("profile.delete_account")}
           variant="ghost"
           onPress={() => setDeleteModalVisible(true)}
           fullWidth
@@ -504,12 +505,12 @@ export default function ParentProfileScreen() {
       <Dialog
         visible={deleteModalVisible}
         onClose={closeDeleteModal}
-        title="Delete Account"
-        subtitle="This permanently deletes your account, kids, tasks and stars. This cannot be undone."
+        title={t("profile.delete_account")}
+        subtitle={t("profile.delete_account_msg")}
         actions={[
-          { label: "Cancel", variant: "ghost", onPress: closeDeleteModal },
+          { label: t("profile.cancel"), variant: "ghost", onPress: closeDeleteModal },
           {
-            label: "Delete",
+            label: t("profile.delete"),
             variant: "danger",
             onPress: deleteAccount,
             loading: deletingAccount,
@@ -517,10 +518,10 @@ export default function ParentProfileScreen() {
         ]}
       >
         <TextField
-          label="Enter your password to confirm"
+          label={t("profile.confirm_password")}
           value={deletePassword}
           onChangeText={setDeletePassword}
-          placeholder="Password"
+          placeholder={t("profile.password")}
           secureToggle
           leftIcon="lock-closed-outline"
         />
@@ -531,10 +532,10 @@ export default function ParentProfileScreen() {
         onClose={() => {}}
         dismissable={false}
         inline
-        title="Enter Parent Access Code"
+        title={t("profile.enter_access_code")}
         actions={[
-          { label: "Back", variant: "ghost", onPress: () => router.back() },
-          { label: "Unlock", onPress: verifyParentPin },
+          { label: t("profile.back"), variant: "ghost", onPress: () => router.back() },
+          { label: t("profile.unlock"), onPress: verifyParentPin },
         ]}
       >
         <TextField
@@ -542,7 +543,7 @@ export default function ParentProfileScreen() {
           onChangeText={(v) =>
             setParentPinInputAttempt(v.replace(/[^0-9]/g, "").slice(0, 4))
           }
-          placeholder="4-digit code"
+          placeholder={t("profile.code_4")}
           keyboardType="number-pad"
           secureToggle
           maxLength={4}

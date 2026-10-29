@@ -1,29 +1,33 @@
+import { t } from "@/lib/i18n";
+
 // Turn backend errors into short, plain messages for parents.
 // Never show error.message directly: it contains technical text like
 // "Firebase: Error (auth/invalid-credential)."
+// Codes map to translation keys in lib/locales/*.json (errors.*).
 const FRIENDLY_MESSAGES: Record<string, string> = {
-  "auth/invalid-credential": "The email or password is not correct. Please check and try again.",
-  "auth/wrong-password": "The password is not correct. Please try again.",
-  "auth/user-not-found": "We couldn't find an account with this email. Please sign up first.",
-  "auth/invalid-email": "Please enter a valid email address.",
-  "auth/missing-email": "Please enter your email address.",
-  "auth/missing-password": "Please enter your password.",
-  "auth/email-already-in-use": "This email already has an account. Please log in instead.",
-  "auth/weak-password": "Please choose a stronger password with at least 6 characters.",
-  "auth/too-many-requests": "Too many tries. Please wait a few minutes and try again.",
-  "auth/requires-recent-login": "For your safety, please log out, log in again and then try once more.",
-  "auth/user-disabled": "This account has been turned off. Please contact support.",
-  "auth/user-token-expired": "Your session has ended. Please log in again.",
-  "auth/network-request-failed": "No internet connection. Please check your connection and try again.",
-  "permission-denied": "You don't have access to do this. Please log in again.",
-  "unavailable": "No internet connection. Please check your connection and try again.",
-  "deadline-exceeded": "This is taking too long. Please try again.",
+  "auth/invalid-credential": "errors.invalid_credential",
+  "auth/wrong-password": "errors.wrong_password",
+  "auth/user-not-found": "errors.user_not_found",
+  "auth/invalid-email": "errors.invalid_email",
+  "auth/missing-email": "errors.missing_email",
+  "auth/missing-password": "errors.missing_password",
+  "auth/email-already-in-use": "errors.email_in_use",
+  "auth/weak-password": "errors.weak_password",
+  "auth/too-many-requests": "errors.too_many",
+  "auth/requires-recent-login": "errors.recent_login",
+  "auth/user-disabled": "errors.user_disabled",
+  "auth/user-token-expired": "errors.token_expired",
+  "auth/network-request-failed": "errors.network",
+  "permission-denied": "errors.permission_denied",
+  "unavailable": "errors.network",
+  "deadline-exceeded": "errors.timeout",
 };
 
 export function friendlyErrorMessage(
   error: any,
-  fallback = "Something went wrong. Please try again."
+  fallback = t("errors.generic")
 ): string {
   const code: string = error?.code ?? "";
-  return FRIENDLY_MESSAGES[code] ?? fallback;
+  const key = FRIENDLY_MESSAGES[code];
+  return key ? t(key) : fallback;
 }

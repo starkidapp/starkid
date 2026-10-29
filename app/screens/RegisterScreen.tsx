@@ -2,18 +2,19 @@
 
 import { Button, TextField } from "@/components/ui";
 import { auth, db } from "@/lib/firebase/config";
-import { t } from "@/lib/i18n";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { createUserWithEmailAndPassword, sendEmailVerification, signOut } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { useState } from "react";
 import { Alert } from "react-native";
 import AuthScreen from "../components/AuthScreen";
+import { useLocale } from "../context/LocaleContext";
 import { useLoading } from "../context/LoadingContext";
 import { friendlyErrorMessage } from "../utils/errorUtils";
 import { alertNetworkError, checkInternet, isNetworkError } from "../utils/netUtils";
 
 export default function RegisterScreen() {
+  const { t } = useLocale();
   const router = useRouter();
   const [parentName, setParentName] = useState("");
   const params = useLocalSearchParams<{ email?: string }>();
@@ -72,6 +73,9 @@ export default function RegisterScreen() {
         password.trim()
       );
       console.log("✅✅✅✅✅", result);
+      // Send before the Firestore write so a failed write can't stop the email.
+      await sendEmailVerification(result.user);
+
       await setDoc(doc(db, "parents", result.user.uid), {
         parentId: result.user.uid,
         parentName: trimmedName,
@@ -79,8 +83,6 @@ export default function RegisterScreen() {
         emailVerified: false,
         createdAt: new Date(),
       });
-
-      await sendEmailVerification(result.user);
 
       await signOut(auth);
       (global as any).isRegistering = false;

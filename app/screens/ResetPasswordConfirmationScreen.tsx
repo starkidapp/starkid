@@ -7,6 +7,7 @@ import AuthScreen from "../components/AuthScreen";
 import { useToast } from "../context/ToastContext";
 import { useLoading, useWithLoading } from "../context/LoadingContext";
 import { friendlyErrorMessage } from "../utils/errorUtils";
+import { t } from "@/lib/i18n";
 
 export default function ResetPasswordConfirmationScreen() {
     const router = useRouter();
@@ -18,7 +19,7 @@ export default function ResetPasswordConfirmationScreen() {
 
     const resendEmail = async () => {
         if (!email) {
-            Alert.alert("Missing email", "Please go back and enter your email address.");
+            Alert.alert(t("reset.missing_email"), t("reset.missing_email_msg"));
             return;
         }
 
@@ -27,23 +28,23 @@ export default function ResetPasswordConfirmationScreen() {
                 await sendPasswordResetEmail(auth, email);
             });
 
-            showToast("✅ We sent the link again. Can't find it? Look in your Spam folder.");
+            showToast(t("reset.sent_again"));
         } catch (error: any) {
             console.error("Resend error:", error);
             Alert.alert(
-                "Couldn't send the email",
-                friendlyErrorMessage(error, "Please try again in a few minutes."),
+                t("reset.send_failed"),
+                friendlyErrorMessage(error, t("reset.wait_msg")),
             );
         }
     };
 
     return (
         <AuthScreen
-            title="Check your email 📬"
-            subtitle={"1. Open your email inbox.\n2. Tap the link in the email we sent you.\n3. Type your new password.\n4. Come back here and log in with the new password.\n\nCan't find the email? Look in your Spam folder."}
+            title={t("reset.check_email")}
+            subtitle={t("reset.steps")}
             footer={
                 <Button
-                    title="Back to login"
+                    title={t("reset.back_to_login")}
                     variant="ghost"
                     size="sm"
                     haptic={false}
@@ -52,7 +53,7 @@ export default function ResetPasswordConfirmationScreen() {
             }
         >
             <Button
-                title="Resend email"
+                title={t("reset.resend")}
                 onPress={resendEmail}
                 loading={loading}
                 fullWidth

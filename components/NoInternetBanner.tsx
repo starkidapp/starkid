@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Animated, StyleSheet } from "react-native";
 import { Text } from "./ui";
 import { palette } from "@/constants/theme";
+import { t } from "@/lib/i18n";
 
 export default function NoInternetBanner() {
   const [isConnected, setIsConnected] = useState<boolean | null>(true);
@@ -56,7 +57,7 @@ export default function NoInternetBanner() {
     >
       <Text style={styles.icon}>{offline ? '📡' : '✅'}</Text>
       <Text style={styles.text}>
-        {offline ? 'No internet connection' : 'Back online'}
+        {offline ? t('net.offline_banner') : t('net.online_banner')}
       </Text>
     </Animated.View>
   );

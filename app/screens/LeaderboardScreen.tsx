@@ -5,6 +5,7 @@ import { spacing } from "@/constants/theme";
 import LeaderboardItem from "../components/LeaderboardItem";
 import ScreenHeader from "../components/ScreenHeader";
 import { useKids } from "../context/KidContext";
+import { t } from "@/lib/i18n";
 
 export default function LeaderboardScreen() {
   const { kids, getChallengeStars } = useKids();
@@ -21,7 +22,7 @@ export default function LeaderboardScreen() {
   return (
     <View style={{ flex: 1 }}>
       <PlayfulBackground />
-      <ScreenHeader title="🏆 Leaderboard" transparent />
+      <ScreenHeader title={t("leaderboard.title")} transparent />
       <Screen padded={false} topInset={false} background="transparent">
         <FlatList
           data={data}
@@ -31,8 +32,8 @@ export default function LeaderboardScreen() {
           ListEmptyComponent={
             <EmptyState
               emoji="🏅"
-              title="No rankings yet"
-              message="Add kids and complete tasks to see who's on top this challenge."
+              title={t("leaderboard.empty_title")}
+              message={t("leaderboard.empty_msg")}
             />
           }
         />

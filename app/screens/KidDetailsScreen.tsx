@@ -1,10 +1,10 @@
-import { t } from "@/lib/i18n";
+import { currentLocale, t } from "@/lib/i18n";
 import { colors, palette, radii, shadows, spacing } from "@/constants/theme";
 import { useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
 import { Alert, FlatList, Modal, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
 
-import { Avatar, Text } from "@/components/ui";
+import { Avatar, ModalBackdrop, Text } from "@/components/ui";
 import ScreenHeader from "../components/ScreenHeader";
 import { useKids } from "../context/KidContext";
 import { capitalizeWords } from "../utils/textUtils";
@@ -67,9 +67,9 @@ export default function KidDetailsScreen() {
     const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
     return Array.from(map.entries()).map(([date, items]) => {
       let label: string;
-      if (date === today) label = 'Today';
-      else if (date === yesterday) label = 'Yesterday';
-      else label = new Date(date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+      if (date === today) label = t('kidDetails.today');
+      else if (date === yesterday) label = t('kidDetails.yesterday');
+      else label = new Date(date).toLocaleDateString(currentLocale(), { weekday: 'short', month: 'short', day: 'numeric' });
       return { date, label, items };
     });
   }, [kidCompletions]);
@@ -105,38 +105,38 @@ export default function KidDetailsScreen() {
           />
           <Text style={styles.kidName}>{capitalizeWords(kid.name)}</Text>
           <Text style={styles.totalStars}>
-            Total Stars: {getKidStars(kidId as string)}
+            {t('kidDetails.total_stars', { stars: getKidStars(kidId as string) })}
           </Text>
         </View>
 
         {/* This Challenge Stats */}
         <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>This Challenge</Text>
+          <Text style={styles.sectionTitle}>{t('kidDetails.this_month')}</Text>
           <View style={styles.statRow}>
-            <Text style={styles.statLabel}>Stars Earned:</Text>
+            <Text style={styles.statLabel}>{t('kidDetails.stars_earned')}</Text>
             <Text style={styles.statValue}>{getChallengeStars(kidId as string)} ⭐</Text>
           </View>
           <View style={styles.statRow}>
-            <Text style={styles.statLabel}>Completions:</Text>
+            <Text style={styles.statLabel}>{t('kidDetails.completions')}</Text>
             <Text style={styles.statValue}>
               {kidCompletions.filter((c) => !c.isBonus && !c.isPenalty).length}
             </Text>
           </View>
           <View style={styles.statRow}>
-            <Text style={styles.statLabel}>Bonuses:</Text>
+            <Text style={styles.statLabel}>{t('kidDetails.bonuses')}</Text>
             <Text style={styles.statValue}>{allBonuses.length}</Text>
           </View>
           <View style={styles.statRow}>
-            <Text style={styles.statLabel}>Penalties:</Text>
+            <Text style={styles.statLabel}>{t('kidDetails.penalties')}</Text>
             <Text style={styles.statValue}>{allPenalties.length}</Text>
           </View>
         </View>
 
         {/* Previous Challenge Ranking */}
         <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>Previous Challenge Ranking</Text>
+          <Text style={styles.sectionTitle}>{t('kidDetails.prev_ranking')}</Text>
           {lastChallengeRankings.length === 0 ? (
-            <Text style={styles.mutedText}>No past challenges yet</Text>
+            <Text style={styles.mutedText}>{t('kidDetails.no_past')}</Text>
           ) : (
             <FlatList
               data={lastChallengeRankings}
@@ -160,9 +160,9 @@ export default function KidDetailsScreen() {
 
         {/* Activity Timeline */}
         <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>Activity Timeline</Text>
+          <Text style={styles.sectionTitle}>{t('kidDetails.timeline')}</Text>
           {activityByDate.length === 0 ? (
-            <Text style={styles.mutedText}>No activity yet</Text>
+            <Text style={styles.mutedText}>{t('kidDetails.no_activity')}</Text>
           ) : (
             activityByDate.map(({ date, label, items }) => (
               <View key={date} style={styles.dateGroup}>
@@ -182,15 +182,15 @@ export default function KidDetailsScreen() {
                           <Text style={styles.activityIconText}>🎁</Text>
                         </View>
                         <View style={styles.activityBody}>
-                          <Text style={styles.activityTitle}>Bonus</Text>
+                          <Text style={styles.activityTitle}>{t('kidDetails.bonus')}</Text>
                           {item.reason ? <Text style={styles.activitySub}>{item.reason}</Text> : null}
                         </View>
                         <Text style={styles.bonusValue}>+{item.stars} ⭐</Text>
                         <TouchableOpacity style={styles.editBtn} onPress={() => openEditReward(item)}>
-                          <Text style={styles.editBtnText}>Edit</Text>
+                          <Text style={styles.editBtnText}>{t('kidDetails.edit')}</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.removeBtn} onPress={() => Alert.alert('Delete Bonus', 'Are you sure?', [{ text: 'Cancel', style: 'cancel' }, { text: 'Delete', style: 'destructive', onPress: () => removeCompletion(item.kidId, item.taskId, item.subtaskId) }])}>
-                          <Text style={styles.removeBtnText}>Del</Text>
+                        <TouchableOpacity style={styles.removeBtn} onPress={() => Alert.alert(t('kidDetails.delete_bonus'), t('kidDetails.are_you_sure'), [{ text: t('kidDetails.cancel'), style: 'cancel' }, { text: t('kidDetails.delete'), style: 'destructive', onPress: () => removeCompletion(item.kidId, item.taskId, item.subtaskId) }])}>
+                          <Text style={styles.removeBtnText}>{t('kidDetails.del')}</Text>
                         </TouchableOpacity>
                       </View>
                     );
@@ -203,21 +203,21 @@ export default function KidDetailsScreen() {
                           <Text style={styles.activityIconText}>⚠️</Text>
                         </View>
                         <View style={styles.activityBody}>
-                          <Text style={styles.activityTitle}>Penalty</Text>
+                          <Text style={styles.activityTitle}>{t('kidDetails.penalty')}</Text>
                           {item.reason ? <Text style={styles.activitySub}>{item.reason}</Text> : null}
                         </View>
                         <Text style={styles.penaltyValue}>-{item.stars} ⭐</Text>
                         <TouchableOpacity style={styles.editBtn} onPress={() => openEditReward(item)}>
-                          <Text style={styles.editBtnText}>Edit</Text>
+                          <Text style={styles.editBtnText}>{t('kidDetails.edit')}</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.removeBtn} onPress={() => Alert.alert('Delete Penalty', 'Are you sure?', [{ text: 'Cancel', style: 'cancel' }, { text: 'Delete', style: 'destructive', onPress: () => removeCompletion(item.kidId, item.taskId, item.subtaskId) }])}>
-                          <Text style={styles.removeBtnText}>Del</Text>
+                        <TouchableOpacity style={styles.removeBtn} onPress={() => Alert.alert(t('kidDetails.delete_penalty'), t('kidDetails.are_you_sure'), [{ text: t('kidDetails.cancel'), style: 'cancel' }, { text: t('kidDetails.delete'), style: 'destructive', onPress: () => removeCompletion(item.kidId, item.taskId, item.subtaskId) }])}>
+                          <Text style={styles.removeBtnText}>{t('kidDetails.del')}</Text>
                         </TouchableOpacity>
                       </View>
                     );
                   }
 
-                  const task = tasks.find((t) => t.id === item.taskId);
+                  const task = tasks.find((tk) => tk.id === item.taskId);
                   const subtask = task?.subtasks.find((s) => s.id === item.subtaskId);
                   return (
                     <View key={item.id} style={[styles.activityItem, styles.taskActivity]}>
@@ -225,12 +225,12 @@ export default function KidDetailsScreen() {
                         <Text style={styles.activityIconText}>⭐</Text>
                       </View>
                       <View style={styles.activityBody}>
-                        <Text style={styles.activityTitle}>{task?.title ?? 'Task'}</Text>
+                        <Text style={styles.activityTitle}>{task?.title ?? t('kidDetails.task')}</Text>
                         {subtask?.title ? <Text style={styles.activitySub}>{subtask.title}</Text> : null}
                       </View>
                       <Text style={styles.taskValue}>{subtask?.stars ?? 0} ⭐</Text>
                       <TouchableOpacity style={styles.removeBtn} onPress={() => Alert.alert(t('kid.info'), t('kid.oops_reminder'), [{ text: t('common.cancel'), style: 'cancel' as any }, { text: t('parentDashboard.delete'), style: 'destructive' as any, onPress: async () => { try { await removeCompletion(item.kidId, item.taskId, item.subtaskId); } catch (e) { console.error(e); } } }])}>
-                        <Text style={styles.removeBtnText}>Del</Text>
+                        <Text style={styles.removeBtnText}>{t('kidDetails.del')}</Text>
                       </TouchableOpacity>
                     </View>
                   );
@@ -241,39 +241,39 @@ export default function KidDetailsScreen() {
         </View>
       </ScrollView>
       <Modal visible={editModalVisible} transparent animationType="slide">
-        <View style={styles.modalBack}>
+        <ModalBackdrop>
           <View style={styles.modalCard}>
             <Text style={styles.sectionTitle}>
-              Edit {editingItem?.isBonus ? "Bonus" : "Penalty"}
+              {editingItem?.isBonus ? t('kidDetails.edit_bonus') : t('kidDetails.edit_penalty')}
             </Text>
 
             <TextInput
-              placeholder="Stars"
+              placeholder={t('kidDetails.stars')}
               value={editStars}
-              onChangeText={(t) => setEditStars(t.replace(/[^0-9]/g, ""))}
+              onChangeText={(v) => setEditStars(v.replace(/[^0-9]/g, ""))}
               keyboardType="number-pad"
               style={styles.input}
             />
 
             <TextInput
-              placeholder="Reason"
+              placeholder={t('kidDetails.reason')}
               value={editReason}
               onChangeText={setEditReason}
               style={styles.input}
             />
 
             <TouchableOpacity style={styles.saveBtn} onPress={handleUpdateReward}>
-              <Text style={styles.saveBtnText}>Save</Text>
+              <Text style={styles.saveBtnText}>{t('kidDetails.save')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.cancelBtn}
               onPress={() => setEditModalVisible(false)}
             >
-              <Text style={styles.cancelBtnText}>Cancel</Text>
+              <Text style={styles.cancelBtnText}>{t('kidDetails.cancel')}</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </ModalBackdrop>
       </Modal>
     </View>
   );
@@ -362,7 +362,6 @@ const styles = StyleSheet.create({
     borderRadius: radii.sm,
   },
   editBtnText: { color: colors.primary, fontSize: 12, fontWeight: "800" },
-  modalBack: { flex: 1, justifyContent: "center", backgroundColor: colors.overlay },
   modalCard: {
     margin: spacing.xl,
     backgroundColor: colors.card,

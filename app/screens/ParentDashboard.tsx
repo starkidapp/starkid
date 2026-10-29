@@ -16,13 +16,14 @@ import {
   View,
 } from "react-native";
 
-import { Avatar, Text } from "@/components/ui";
+import { Avatar, ModalBackdrop, Text } from "@/components/ui";
 import { colors, palette, radii, shadows, spacing } from "@/constants/theme";
 import AvatarPicker from "../components/AvatarPicker";
 import ScreenHeader from "../components/ScreenHeader";
 import { useKids } from "../context/KidContext";
 import { useToast } from "../context/ToastContext";
 import { capitalizeWords, joinNames } from "../utils/textUtils";
+import { t } from "@/lib/i18n";
 
 export default function ParentDashboard() {
   const {
@@ -52,7 +53,7 @@ export default function ParentDashboard() {
   const [pin, setPin] = useState("");
   const [taskTitle, setTaskTitle] = useState("");
   const [subtasks, setSubtasks] = useState<{ title: string; stars: string }[]>([
-    { title: "Subtask 1", stars: "1" },
+    { title: t("dash.subtask_n", { n: 1 }), stars: "1" },
   ]);
 
   const { from } = useLocalSearchParams();
@@ -124,17 +125,17 @@ export default function ParentDashboard() {
       return;
     }
     if (!editKidName.trim()) {
-      Alert.alert("Missing name", "Please type the kid's name.");
+      Alert.alert(t("dash.missing_name"), t("dash.missing_kid_name"));
       return;
     }
     updateKid({ ...kid, name: editKidName.trim(), avatar: editKidAvatar });
     setEditKidId(null);
-    showToast(`✅ ${capitalizeWords(editKidName.trim())} is updated.`);
+    showToast(t("dash.kid_updated", { name: capitalizeWords(editKidName.trim()) }));
   }
 
   function handleAdd() {
     if (!name.trim() || pin.length !== 4 || !/^[0-9]{4}$/.test(pin)) {
-      Alert.alert("Missing details", "Please enter the kid's name and a 4-number PIN.");
+      Alert.alert(t("dash.missing_details"), t("dash.missing_kid_details"));
       return;
     }
 
@@ -147,7 +148,7 @@ export default function ParentDashboard() {
 
   function handleAddTask() {
     if (subtasks.length === 0) {
-      Alert.alert("Add a step", "Please add at least one step to this task.");
+      Alert.alert(t("dash.add_step"), t("dash.add_step_msg"));
       return;
     }
 
@@ -158,7 +159,7 @@ export default function ParentDashboard() {
 
     const needsMainTitle = cleaned.length > 1;
     if (needsMainTitle && !taskTitle.trim()) {
-      Alert.alert("Missing task name", "Please give this task a name.");
+      Alert.alert(t("dash.missing_task_name"), t("dash.missing_task_name_msg"));
       return;
     }
 
@@ -168,7 +169,7 @@ export default function ParentDashboard() {
 
     addTask({ title: finalTitle, subtasks: cleaned });
     setTaskTitle("");
-    setSubtasks([{ title: "Subtask 1", stars: "1" }]);
+    setSubtasks([{ title: t("dash.subtask_n", { n: 1 }), stars: "1" }]);
     setTaskModalVisible(false);
   }
 
@@ -186,11 +187,11 @@ export default function ParentDashboard() {
 
   function handleEditTask() {
     if (!editingTaskId || !editTaskTitle.trim() || editSubtasks.length === 0) {
-      Alert.alert("Missing details", "Please enter a task name and at least one step.");
+      Alert.alert(t("dash.missing_details"), t("dash.missing_task_details"));
       return;
     }
 
-    const original = tasks.find((t) => t.id === editingTaskId);
+    const original = tasks.find((tk) => tk.id === editingTaskId);
     const subtasks = editSubtasks.map((s, index) => ({
       id:
         original?.subtasks[index]?.id ??
@@ -205,16 +206,16 @@ export default function ParentDashboard() {
   }
 
   function handleDeleteTask(taskId: string) {
-    const task = tasks.find((t) => t.id === taskId);
+    const task = tasks.find((tk) => tk.id === taskId);
     if (!task) return;
 
     Alert.alert(
-      "Delete task?",
-      `Delete "${task.title}"? You can't undo this.`,
+      t("dash.delete_task"),
+      t("dash.delete_task_msg", { title: task.title }),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t("dash.cancel"), style: "cancel" },
         {
-          text: "Delete",
+          text: t("dash.delete"),
           style: "destructive",
           onPress: () => removeTask(taskId),
         },
@@ -285,7 +286,7 @@ export default function ParentDashboard() {
       setAuthModalVisible(false);
       setParentPinInput("");
     } else {
-      Alert.alert("Wrong PIN", "That PIN is not correct. Please try again.");
+      Alert.alert(t("dash.wrong_pin"), t("dash.wrong_pin_msg"));
     }
   }
 
@@ -294,12 +295,12 @@ export default function ParentDashboard() {
     if (!currentUser) return;
 
     if (!/^[0-9]{4}$/.test(setupPin)) {
-      Alert.alert("Check the PIN", "The PIN must be 4 numbers.");
+      Alert.alert(t("dash.check_pin"), t("dash.check_pin_msg"));
       return;
     }
 
     if (setupPin !== setupConfirmPin) {
-      Alert.alert("PINs don't match", "Please type the same PIN in both boxes.");
+      Alert.alert(t("dash.pins_mismatch"), t("dash.pins_mismatch_msg"));
       return;
     }
 
@@ -316,22 +317,22 @@ export default function ParentDashboard() {
       setSetupPin("");
       setSetupConfirmPin("");
       setParentPinInput("");
-      showToast("✅ Your parent PIN is saved.");
+      showToast(t("dash.parent_pin_saved"));
     } catch (error) {
       console.error("Error saving parent PIN:", error);
-      Alert.alert("Couldn't save", "Please try again.");
+      Alert.alert(t("dash.save_failed"), t("dash.try_again"));
     }
   }
 
   async function saveKidPin() {
     if (!kidToResetId) return;
     if (!/^[0-9]{4}$/.test(kidPinInput)) {
-      Alert.alert("Check the PIN", "The PIN must be 4 numbers.");
+      Alert.alert(t("dash.check_pin"), t("dash.check_pin_msg"));
       return;
     }
     const kid = kids.find((k) => k.id === kidToResetId);
     if (!kid) {
-      Alert.alert("Kid not found", "Please go back and try again.");
+      Alert.alert(t("dash.kid_not_found"), t("dash.kid_not_found_msg"));
       return;
     }
 
@@ -340,10 +341,10 @@ export default function ParentDashboard() {
       setKidPinModalVisible(false);
       setKidToResetId(null);
       setKidPinInput("");
-      showToast(`✅ ${kid.name}'s PIN is changed.`);
+      showToast(t("dash.kid_pin_changed", { name: kid.name }));
     } catch (error) {
       console.error("Error resetting kid PIN", error);
-      Alert.alert("Couldn't save", "Please try again.");
+      Alert.alert(t("dash.save_failed"), t("dash.try_again"));
     }
   }
 
@@ -356,7 +357,7 @@ export default function ParentDashboard() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <ScreenHeader
-        title="Parent Dashboard"
+        title={t("dash.title")}
         rightButton={{
           icon: "person-circle",
           onPress: () =>
@@ -372,23 +373,21 @@ export default function ParentDashboard() {
         contentContainerStyle={{ paddingBottom: 40 }}
       >
         <View style={styles.headerCard}>
-          <Text style={styles.title}>Parent Dashboard</Text>
-          <Text style={styles.subtitle}>Manage kids, tasks and rewards</Text>
-
+          {/* The screen header already says "Parent Dashboard", so no big title here. */}
           <View style={styles.summaryRow}>
             <View style={styles.summaryTile}>
               <Text style={styles.tileNumber}>{kids.length}</Text>
-              <Text style={styles.tileLabel}>Kids</Text>
+              <Text style={styles.tileLabel}>{t("dash.kids")}</Text>
             </View>
             <View style={styles.summaryTile}>
               <Text style={styles.tileNumber}>{tasks.length}</Text>
-              <Text style={styles.tileLabel}>Tasks</Text>
+              <Text style={styles.tileLabel}>{t("dash.tasks")}</Text>
             </View>
             <View style={styles.summaryTile}>
               <Text style={styles.tileNumber}>
                 {kids.reduce((a, k) => a + getChallengeStars(k.id), 0)}
               </Text>
-              <Text style={styles.tileLabel}>This challenge ⭐</Text>
+              <Text style={styles.tileLabel}>{t("dash.this_challenge")}</Text>
             </View>
           </View>
 
@@ -399,11 +398,11 @@ export default function ParentDashboard() {
           >
             <Text style={styles.leaderEmoji}>🏆</Text>
             <View style={{ flex: 1 }}>
-              <Text style={styles.leaderLabel}>Top of the challenge</Text>
+              <Text style={styles.leaderLabel}>{t("dash.top_of_challenge")}</Text>
               <Text style={styles.leaderName} numberOfLines={1}>
                 {leaders.length > 0
                   ? `${leaderNames} · ${leaderStars} ⭐`
-                  : "No stars earned yet"}
+                  : t("dash.no_stars_yet")}
               </Text>
             </View>
             <Text style={styles.leaderChevron}>›</Text>
@@ -414,42 +413,41 @@ export default function ParentDashboard() {
               style={[styles.primaryBtn, { flex: 1 }]}
               onPress={() => setModalVisible(true)}
             >
-              <Text style={styles.primaryBtnText}>＋ Add Kid</Text>
+              <Text style={styles.primaryBtnText}>{t("dash.add_kid_btn")}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.ghostBtn, { flex: 1 }]}
               onPress={() => setTaskModalVisible(true)}
             >
-              <Text style={styles.ghostBtnText}>＋ Add Task</Text>
+              <Text style={styles.ghostBtnText}>{t("dash.add_task_btn")}</Text>
             </TouchableOpacity>
           </View>
-          <TouchableOpacity
-            style={[styles.ghostBtn, { marginTop: 12 }]}
-            onPress={() => setResetPinModalVisible(true)}
-          >
-            <Text style={styles.ghostBtnText}>Reset Parent Passcode</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.primaryBtn,
-              { backgroundColor: "#f17f0da4", marginTop: 12 },
-            ]}
-            onPress={() => setResetModalVisible(true)}
-          >
-            <Text style={styles.primaryBtnText}>🏆 End Challenge</Text>
-          </TouchableOpacity>
+          <View style={styles.minorActionsRow}>
+            <TouchableOpacity
+              style={styles.minorBtn}
+              onPress={() => setResetPinModalVisible(true)}
+            >
+              <Text style={styles.minorBtnText}>{t("dash.change_passcode")}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.minorBtn}
+              onPress={() => setResetModalVisible(true)}
+            >
+              <Text style={styles.minorBtnText}>{t("dash.end_challenge_btn")}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {kids.length > 0 && (
           <View style={styles.sectionCard}>
-            <Text style={styles.sectionTitle}>Kids</Text>
+            <Text style={styles.sectionTitle}>{t("dash.kids")}</Text>
             <FlatList
               data={kids}
               keyExtractor={(i) => i.id}
               renderItem={({ item }) => {
                 const displayName = item.name?.trim()
                   ? capitalizeWords(item.name.trim())
-                  : `Kid ${item.id}`;
+                  : t("dash.kid_fallback", { id: item.id });
                 const bonusCount = getBonusCount(item.id);
                 const penaltyCount = getPenaltyCount(item.id);
 
@@ -463,7 +461,7 @@ export default function ParentDashboard() {
                         style={leaderIds.includes(item.id) ? styles.crownedAvatar : undefined}
                       />
                       <View style={{ marginLeft: 12, flex: 1, minWidth: 0 }}>
-                        <Text style={styles.kidNameLabel}>Name</Text>
+                        <Text style={styles.kidNameLabel}>{t("dash.name")}</Text>
                         <Text
                           style={styles.kidName}
                           numberOfLines={1}
@@ -475,17 +473,17 @@ export default function ParentDashboard() {
                     </View>
                     <View style={styles.kidStatsGrid}>
                       <View style={styles.kidStatBlock}>
-                        <Text style={styles.kidStatLabel}>Stars this challenge</Text>
+                        <Text style={styles.kidStatLabel}>{t("dash.stars_this_challenge")}</Text>
                         <Text style={styles.kidStatValue}>
                           {getChallengeStars(item.id)} ⭐
                         </Text>
                       </View>
                       <View style={styles.kidStatBlock}>
-                        <Text style={styles.kidStatLabel}>Bonuses</Text>
+                        <Text style={styles.kidStatLabel}>{t("dash.bonuses")}</Text>
                         <Text style={styles.kidStatValue}>{bonusCount}</Text>
                       </View>
                       <View style={styles.kidStatBlock}>
-                        <Text style={styles.kidStatLabel}>Penalties</Text>
+                        <Text style={styles.kidStatLabel}>{t("dash.penalties")}</Text>
                         <Text style={styles.kidStatValue}>{penaltyCount}</Text>
                       </View>
                     </View>
@@ -494,7 +492,7 @@ export default function ParentDashboard() {
                         style={styles.smallEditBtn}
                         onPress={() => openEditKid(item)}
                       >
-                        <Text style={styles.smallEditBtnText}>✏️ Edit</Text>
+                        <Text style={styles.smallEditBtnText}>{t("dash.edit_btn")}</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={styles.smallPrimaryBtn}
@@ -503,7 +501,7 @@ export default function ParentDashboard() {
                           setBonusModalVisible(true);
                         }}
                       >
-                        <Text style={styles.smallPrimaryBtnText}>＋ Bonus</Text>
+                        <Text style={styles.smallPrimaryBtnText}>{t("dash.bonus_btn")}</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={styles.smallPenaltyBtn}
@@ -512,7 +510,7 @@ export default function ParentDashboard() {
                           setPenaltyModalVisible(true);
                         }}
                       >
-                        <Text style={styles.smallPenaltyBtnText}>⚠️ Penalty</Text>
+                        <Text style={styles.smallPenaltyBtnText}>{t("dash.penalty_btn")}</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={styles.smallResetPinBtn}
@@ -522,18 +520,18 @@ export default function ParentDashboard() {
                           setKidPinModalVisible(true);
                         }}
                       >
-                        <Text style={styles.smallResetPinBtnText}>🔒 Reset PIN</Text>
+                        <Text style={styles.smallResetPinBtnText}>{t("dash.reset_pin_btn")}</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={styles.smallDeleteBtn}
                         onPress={() => {
                           Alert.alert(
-                            "Remove kid?",
-                            `Remove ${displayName} and all their stars? You can't undo this.`,
+                            t("dash.remove_kid"),
+                            t("dash.remove_kid_msg", { name: displayName }),
                             [
-                              { text: "Cancel", style: "cancel" },
+                              { text: t("dash.cancel"), style: "cancel" },
                               {
-                                text: "Delete",
+                                text: t("dash.delete"),
                                 style: "destructive",
                                 onPress: () => removeKid(item.id),
                               },
@@ -541,7 +539,7 @@ export default function ParentDashboard() {
                           );
                         }}
                       >
-                        <Text style={styles.smallDeleteBtnText}>🗑️ Delete</Text>
+                        <Text style={styles.smallDeleteBtnText}>{t("dash.delete_btn")}</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -553,7 +551,7 @@ export default function ParentDashboard() {
 
         {tasks.length > 0 && (
           <View style={styles.sectionCard}>
-            <Text style={styles.sectionTitle}>Tasks</Text>
+            <Text style={styles.sectionTitle}>{t("dash.tasks")}</Text>
             <FlatList
               data={tasks}
               keyExtractor={(i) => i.id}
@@ -585,7 +583,7 @@ export default function ParentDashboard() {
                     </View>
                   </View>
                   <Text style={{ color: "#666", fontSize: 12, marginTop: 4 }}>
-                    {item.subtasks.length} subtasks
+                    {t("dash.subtasks_count", { count: item.subtasks.length })}
                   </Text>
                   <View
                     style={{
@@ -614,7 +612,7 @@ export default function ParentDashboard() {
 
         {completions.length > 0 && (
           <>
-            <Text style={[styles.section, { marginTop: 12 }]}>Today’s Completions</Text>
+            <Text style={[styles.section, { marginTop: 12 }]}>{t("dash.todays_completions")}</Text>
             {(() => {
               const today = new Date().toISOString().slice(0, 10);
               const todayComps = completions.filter((c) => c.date === today);
@@ -622,7 +620,7 @@ export default function ParentDashboard() {
                 return (
                   <View style={{ padding: 12 }}>
                     <Text style={{ color: "#666" }}>
-                      No completions yet today.
+                      {t("dash.no_completions_today")}
                     </Text>
                   </View>
                 );
@@ -669,7 +667,7 @@ export default function ParentDashboard() {
                         </View>
                       </View>
                       <Text style={{ color: "#6C63FF", fontWeight: "700" }}>
-                        View Details →
+                        {t("dash.view_details")}
                       </Text>
                     </TouchableOpacity>
                   )}
@@ -681,7 +679,7 @@ export default function ParentDashboard() {
 
         {competitions.length > 0 && (
           <>
-            <Text style={[styles.section, { marginTop: 12 }]}>Past Challenges</Text>
+            <Text style={[styles.section, { marginTop: 12 }]}>{t("dash.past_challenges")}</Text>
             <FlatList
               data={competitions.slice(-3)}
               keyExtractor={(item) => item.id}
@@ -695,7 +693,7 @@ export default function ParentDashboard() {
                       alignItems: "center",
                     }}
                   >
-                    <Text style={styles.competitionTitle}>Challenge</Text>
+                    <Text style={styles.competitionTitle}>{t("dash.challenge")}</Text>
                     <Text style={styles.competitionDate}>
                       {new Date(item.startDate).toLocaleDateString()} – {new Date(item.endDate).toLocaleDateString()}
                     </Text>
@@ -703,7 +701,7 @@ export default function ParentDashboard() {
                   {item.winner && (
                     <View style={{ marginTop: 8 }}>
                       <Text style={styles.winnerText}>
-                        {(item.winners?.length ?? 0) > 1 ? "🏆 Winners: " : "🏆 Winner: "}
+                        {(item.winners?.length ?? 0) > 1 ? t("dash.winners") : t("dash.winner")}
                         {joinNames((item.winners ?? [item.winner]).map((w) => w.name))}
                       </Text>
                       {item.secondPlace && (
@@ -714,8 +712,8 @@ export default function ParentDashboard() {
                     </View>
                   )}
                   <Text style={styles.rankingsText}>
-                    Rankings: {item.rankings.slice(0, 3).map((r) => `${r.name} (${r.stars}⭐)`).join(", ")}
-                    {item.rankings.length > 3 && ` +${item.rankings.length - 3} more`}
+                    {t("dash.rankings")}{item.rankings.slice(0, 3).map((r) => `${r.name} (${r.stars}⭐)`).join(", ")}
+                    {item.rankings.length > 3 && t("dash.more", { count: item.rankings.length - 3 })}
                   </Text>
                 </View>
               )}
@@ -724,21 +722,21 @@ export default function ParentDashboard() {
         )}
 
         <Modal visible={modalVisible} transparent animationType="slide">
-          <View style={styles.modalBack}>
+          <ModalBackdrop>
             <View style={styles.modalCard}>
-              <Text style={styles.modalTitle}>Add Kid</Text>
+              <Text style={styles.modalTitle}>{t("dash.add_kid")}</Text>
               <TextInput
-                placeholder="Name"
+                placeholder={t("dash.name")}
                 value={name}
                 onChangeText={setName}
                 style={styles.input}
               />
-              <Text style={styles.fieldLabel}>Choose a picture</Text>
+              <Text style={styles.fieldLabel}>{t("dash.choose_picture")}</Text>
               <AvatarPicker value={avatar} onChange={setAvatar} />
               <TextInput
-                placeholder="4-digit PIN"
+                placeholder={t("dash.pin_4")}
                 value={pin}
-                onChangeText={(t) => setPin(t.replace(/[^0-9]/g, "").slice(0, 4))}
+                onChangeText={(v) => setPin(v.replace(/[^0-9]/g, "").slice(0, 4))}
                 keyboardType="number-pad"
                 style={styles.input}
               />
@@ -747,53 +745,53 @@ export default function ParentDashboard() {
                   style={[styles.btn, { flex: 1 }]}
                   onPress={handleAdd}
                 >
-                  <Text style={styles.btnText}>Save</Text>
+                  <Text style={styles.btnText}>{t("dash.save")}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.btn, { flex: 1, backgroundColor: "#ccc" }]}
                   onPress={() => setModalVisible(false)}
                 >
-                  <Text style={[styles.btnText, { color: "#000" }]}>Cancel</Text>
+                  <Text style={[styles.btnText, { color: "#000" }]}>{t("dash.cancel")}</Text>
                 </TouchableOpacity>
               </View>
             </View>
-          </View>
+          </ModalBackdrop>
         </Modal>
 
         <Modal visible={editKidId !== null} transparent animationType="slide">
-          <View style={styles.modalBack}>
+          <ModalBackdrop>
             <View style={styles.modalCard}>
-              <Text style={styles.modalTitle}>Edit Kid</Text>
-              <Text style={styles.fieldLabel}>Name</Text>
+              <Text style={styles.modalTitle}>{t("dash.edit_kid")}</Text>
+              <Text style={styles.fieldLabel}>{t("dash.name")}</Text>
               <TextInput
-                placeholder="Name"
+                placeholder={t("dash.name")}
                 value={editKidName}
                 onChangeText={setEditKidName}
                 style={styles.input}
               />
-              <Text style={styles.fieldLabel}>Choose a picture</Text>
+              <Text style={styles.fieldLabel}>{t("dash.choose_picture")}</Text>
               <AvatarPicker value={editKidAvatar} onChange={setEditKidAvatar} />
               <View style={{ flexDirection: "row", gap: 8 }}>
                 <TouchableOpacity style={[styles.btn, { flex: 1 }]} onPress={saveKidEdit}>
-                  <Text style={styles.btnText}>Save</Text>
+                  <Text style={styles.btnText}>{t("dash.save")}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.btn, { flex: 1, backgroundColor: "#ccc" }]}
                   onPress={() => setEditKidId(null)}
                 >
-                  <Text style={[styles.btnText, { color: "#000" }]}>Cancel</Text>
+                  <Text style={[styles.btnText, { color: "#000" }]}>{t("dash.cancel")}</Text>
                 </TouchableOpacity>
               </View>
             </View>
-          </View>
+          </ModalBackdrop>
         </Modal>
 
         <Modal visible={taskModalVisible} transparent animationType="slide">
-          <View style={styles.modalBack}>
+          <ModalBackdrop>
             <View style={styles.modalCard}>
-              <Text style={styles.modalTitle}>Add Task</Text>
+              <Text style={styles.modalTitle}>{t("dash.add_task")}</Text>
               <TextInput
-                placeholder="Task title"
+                placeholder={t("dash.task_title")}
                 value={taskTitle}
                 onChangeText={setTaskTitle}
                 style={styles.input}
@@ -809,7 +807,7 @@ export default function ParentDashboard() {
                   }}
                 >
                   <TextInput
-                    placeholder={`Subtask ${index + 1}`}
+                    placeholder={t("dash.subtask_n", { n: index + 1 })}
                     value={subtask.title}
                     onChangeText={(value) => {
                       const updated = [...subtasks];
@@ -819,7 +817,7 @@ export default function ParentDashboard() {
                     style={[styles.input, { flex: 1 }]}
                   />
                   <TextInput
-                    placeholder="Stars"
+                    placeholder={t("dash.stars")}
                     value={subtask.stars}
                     onChangeText={(value) => {
                       const updated = [...subtasks];
@@ -834,31 +832,31 @@ export default function ParentDashboard() {
               <TouchableOpacity
                 style={[styles.btn, { backgroundColor: "#6C63FF" }]}
                 onPress={() =>
-                  setSubtasks((prev) => [...prev, { title: `Subtask ${prev.length + 1}`, stars: "1" }])
+                  setSubtasks((prev) => [...prev, { title: t("dash.subtask_n", { n: prev.length + 1 }), stars: "1" }])
                 }
               >
-                <Text style={styles.btnText}>+ Add Subtask</Text>
+                <Text style={styles.btnText}>{t("dash.add_subtask")}</Text>
               </TouchableOpacity>
               <View style={{ flexDirection: "row", gap: 8, marginTop: 12 }}>
                 <TouchableOpacity
                   style={[styles.btn, { flex: 1 }]}
                   onPress={handleAddTask}
                 >
-                  <Text style={styles.btnText}>Save Task</Text>
+                  <Text style={styles.btnText}>{t("dash.save_task")}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.btn, { flex: 1, backgroundColor: "#ccc" }]}
                   onPress={() => {
                     setTaskModalVisible(false);
                     setTaskTitle("");
-                    setSubtasks([{ title: "Subtask 1", stars: "1" }]);
+                    setSubtasks([{ title: t("dash.subtask_n", { n: 1 }), stars: "1" }]);
                   }}
                 >
-                  <Text style={[styles.btnText, { color: "#000" }]}>Cancel</Text>
+                  <Text style={[styles.btnText, { color: "#000" }]}>{t("dash.cancel")}</Text>
                 </TouchableOpacity>
               </View>
             </View>
-          </View>
+          </ModalBackdrop>
         </Modal>
 
         <Modal
@@ -867,41 +865,41 @@ export default function ParentDashboard() {
           animationType="slide"
           onShow={() => focusSoon(resetPinRef)}
         >
-          <View style={styles.modalBack}>
+          <ModalBackdrop>
             <View style={styles.modalCard}>
-              <Text style={styles.modalTitle}>Reset Parent Passcode</Text>
+              <Text style={styles.modalTitle}>{t("dash.reset_parent_passcode")}</Text>
               <Text style={{ color: "#666", marginBottom: 12 }}>
-                Enter a new 4-digit parent access code for this dashboard.
+                {t("dash.reset_parent_passcode_msg")}
               </Text>
               <TextInput
                 ref={resetPinRef}
                 autoFocus
-                placeholder="New 4-digit PIN"
+                placeholder={t("dash.new_pin")}
                 value={setupPin}
-                onChangeText={(t) => setSetupPin(t.replace(/[^0-9]/g, "").slice(0, 4))}
+                onChangeText={(v) => setSetupPin(v.replace(/[^0-9]/g, "").slice(0, 4))}
                 keyboardType="number-pad"
                 style={styles.input}
               />
               <TextInput
-                placeholder="Confirm PIN"
+                placeholder={t("dash.confirm_pin")}
                 value={setupConfirmPin}
-                onChangeText={(t) => setSetupConfirmPin(t.replace(/[^0-9]/g, "").slice(0, 4))}
+                onChangeText={(v) => setSetupConfirmPin(v.replace(/[^0-9]/g, "").slice(0, 4))}
                 keyboardType="number-pad"
                 style={styles.input}
               />
               <View style={{ flexDirection: "row", gap: 8 }}>
                 <TouchableOpacity style={[styles.btn, { flex: 1 }]} onPress={saveParentPin}>
-                  <Text style={styles.btnText}>Save</Text>
+                  <Text style={styles.btnText}>{t("dash.save")}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.btn, { flex: 1, backgroundColor: "#ccc" }]}
                   onPress={() => setResetPinModalVisible(false)}
                 >
-                  <Text style={[styles.btnText, { color: "#000" }]}>Cancel</Text>
+                  <Text style={[styles.btnText, { color: "#000" }]}>{t("dash.cancel")}</Text>
                 </TouchableOpacity>
               </View>
             </View>
-          </View>
+          </ModalBackdrop>
         </Modal>
 
         <Modal
@@ -910,55 +908,55 @@ export default function ParentDashboard() {
           animationType="slide"
           onShow={() => focusSoon(kidPinRef)}
         >
-          <View style={styles.modalBack}>
+          <ModalBackdrop>
             <View style={styles.modalCard}>
-              <Text style={styles.modalTitle}>Reset Kid Passcode</Text>
+              <Text style={styles.modalTitle}>{t("dash.reset_kid_passcode")}</Text>
               <Text style={{ color: "#666", marginBottom: 12 }}>
-                {kids.find((k) => k.id === kidToResetId)?.name ?? "Select kid"}
+                {kids.find((k) => k.id === kidToResetId)?.name ?? t("dash.select_kid")}
               </Text>
               <TextInput
                 ref={kidPinRef}
                 autoFocus
-                placeholder="New 4-digit PIN"
+                placeholder={t("dash.new_pin")}
                 value={kidPinInput}
-                onChangeText={(t) => setKidPinInput(t.replace(/[^0-9]/g, "").slice(0, 4))}
+                onChangeText={(v) => setKidPinInput(v.replace(/[^0-9]/g, "").slice(0, 4))}
                 keyboardType="number-pad"
                 style={styles.input}
               />
               <View style={{ flexDirection: "row", gap: 8 }}>
                 <TouchableOpacity style={[styles.btn, { flex: 1 }]} onPress={saveKidPin}>
-                  <Text style={styles.btnText}>Save</Text>
+                  <Text style={styles.btnText}>{t("dash.save")}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.btn, { flex: 1, backgroundColor: "#ccc" }]}
                   onPress={() => { setKidPinModalVisible(false); setKidToResetId(null); setKidPinInput(""); }}
                 >
-                  <Text style={[styles.btnText, { color: "#000" }]}>Cancel</Text>
+                  <Text style={[styles.btnText, { color: "#000" }]}>{t("dash.cancel")}</Text>
                 </TouchableOpacity>
               </View>
             </View>
-          </View>
+          </ModalBackdrop>
         </Modal>
 
         <Modal visible={penaltyModalVisible} transparent animationType="slide">
-          <View style={styles.modalBack}>
+          <ModalBackdrop>
             <View style={styles.penaltyModalCard}>
-              <Text style={styles.penaltyModalTitle}>Apply Penalty / Alert</Text>
+              <Text style={styles.penaltyModalTitle}>{t("dash.penalty_title")}</Text>
               <Text style={{ color: "#666", marginBottom: 6 }}>
-                {kids.find((k) => k.id === penaltyKidId)?.name ?? "Select kid"}
+                {kids.find((k) => k.id === penaltyKidId)?.name ?? t("dash.select_kid")}
               </Text>
               <Text style={{ color: "#333", marginBottom: 6 }}>
                 Deduct points from the kid&apos;s total. Use sparingly and add a short reason.
               </Text>
               <TextInput
-                placeholder="Points to deduct"
+                placeholder={t("dash.points_to_deduct")}
                 value={penaltyStars}
-                onChangeText={(t) => setPenaltyStars(t.replace(/[^0-9]/g, ""))}
+                onChangeText={(v) => setPenaltyStars(v.replace(/[^0-9]/g, ""))}
                 keyboardType="number-pad"
                 style={styles.input}
               />
               <TextInput
-                placeholder="Reason (optional)"
+                placeholder={t("dash.reason_optional")}
                 value={penaltyReason}
                 onChangeText={setPenaltyReason}
                 style={styles.input}
@@ -994,7 +992,7 @@ export default function ParentDashboard() {
                   style={[styles.btn, { flex: 1, backgroundColor: "#e63946" }]}
                   onPress={() => {
                     if (!penaltyKidId) {
-                      Alert.alert("Choose a kid", "Please tap a kid's name first, then try again.");
+                      Alert.alert(t("dash.choose_kid"), t("dash.choose_kid_msg"));
                       return;
                     }
                     const pts = Number(penaltyStars) || 1;
@@ -1012,7 +1010,7 @@ export default function ParentDashboard() {
                         subtaskId: res.id,
                         taskId: attachId,
                       });
-                      setSnackMsg(`Deducted ${pts} point(s)`);
+                      setSnackMsg(t("dash.deducted", { pts }));
                       setSnackVisible(true);
                       setPenaltyStars("1");
                       setPenaltyReason("");
@@ -1021,39 +1019,39 @@ export default function ParentDashboard() {
                       setPenaltyModalVisible(false);
                     } catch (err) {
                       console.warn("addPenalty error", err);
-                      Alert.alert("Couldn't save", "Please try again.");
+                      Alert.alert(t("dash.save_failed"), t("dash.try_again"));
                     }
                   }}
                 >
-                  <Text style={styles.btnText}>Apply Penalty</Text>
+                  <Text style={styles.btnText}>{t("dash.apply_penalty")}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.btn, { flex: 1, backgroundColor: "#ccc" }]}
                   onPress={() => setPenaltyModalVisible(false)}
                 >
-                  <Text style={[styles.btnText, { color: "#000" }]}>Cancel</Text>
+                  <Text style={[styles.btnText, { color: "#000" }]}>{t("dash.cancel")}</Text>
                 </TouchableOpacity>
               </View>
             </View>
-          </View>
+          </ModalBackdrop>
         </Modal>
 
         <Modal visible={bonusModalVisible} transparent animationType="slide">
-          <View style={styles.modalBack}>
+          <ModalBackdrop>
             <View style={styles.modalCard}>
-              <Text style={styles.modalTitle}>Give Bonus</Text>
+              <Text style={styles.modalTitle}>{t("dash.give_bonus")}</Text>
               <Text style={{ color: "#666", marginBottom: 6 }}>
-                {kids.find((k) => k.id === bonusKidId)?.name ?? "Select kid"}
+                {kids.find((k) => k.id === bonusKidId)?.name ?? t("dash.select_kid")}
               </Text>
               <TextInput
-                placeholder="Stars"
+                placeholder={t("dash.stars")}
                 value={bonusStars}
-                onChangeText={(t) => setBonusStars(t.replace(/[^0-9]/g, ""))}
+                onChangeText={(v) => setBonusStars(v.replace(/[^0-9]/g, ""))}
                 keyboardType="number-pad"
                 style={styles.input}
               />
               <TextInput
-                placeholder="Reason (optional)"
+                placeholder={t("dash.reason_optional")}
                 value={bonusReason}
                 onChangeText={setBonusReason}
                 style={styles.input}
@@ -1063,7 +1061,7 @@ export default function ParentDashboard() {
                   style={[styles.bonusBtn, { flex: 1 }]}
                   onPress={() => {
                     if (!bonusKidId) {
-                      Alert.alert("Choose a kid", "Please tap a kid's name first, then try again.");
+                      Alert.alert(t("dash.choose_kid"), t("dash.choose_kid_msg"));
                       return;
                     }
                     const stars = Number(bonusStars) || 1;
@@ -1074,38 +1072,37 @@ export default function ParentDashboard() {
                     setBonusModalVisible(false);
                   }}
                 >
-                  <Text style={styles.btnText}>Give</Text>
+                  <Text style={styles.btnText}>{t("dash.give")}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.btn, { flex: 1, backgroundColor: "#ccc" }]}
                   onPress={() => setBonusModalVisible(false)}
                 >
-                  <Text style={[styles.btnText, { color: "#000" }]}>Cancel</Text>
+                  <Text style={[styles.btnText, { color: "#000" }]}>{t("dash.cancel")}</Text>
                 </TouchableOpacity>
               </View>
             </View>
-          </View>
+          </ModalBackdrop>
         </Modal>
 
         <Modal visible={resetModalVisible} transparent animationType="slide">
-          <View style={styles.modalBack}>
+          <ModalBackdrop>
             <View style={styles.modalCard}>
-              <Text style={styles.modalTitle}>End Challenge & Award Prize</Text>
+              <Text style={styles.modalTitle}>{t("dash.end_challenge_title")}</Text>
               <Text style={{ color: "#666", marginBottom: 12 }}>
-                This will reset every kid&apos;s stars, bonuses, and penalties to zero and start a
-                fresh challenge.
+                {t("dash.end_challenge_msg")}
               </Text>
               {kids.length > 0 && (
                 <View style={{ marginBottom: 12 }}>
                   <Text style={{ fontWeight: "800", marginBottom: 8 }}>
-                    {leaders.length > 1 ? "🏆 Winners (tied):" : "🏆 Winner:"}
+                    {leaders.length > 1 ? t("dash.winners_tied") : t("dash.winner_label")}
                   </Text>
                   <View style={styles.winnerRow}>
                     <Text style={styles.winnerEmoji}>⭐</Text>
                     <Text style={styles.winnerText}>
                       {leaders.length > 0
                         ? `${leaderNames} (${leaderStars} ⭐)`
-                        : "No stars earned yet"}
+                        : t("dash.no_stars_yet")}
                     </Text>
                   </View>
                 </View>
@@ -1116,29 +1113,29 @@ export default function ParentDashboard() {
                   onPress={() => {
                     resetCompetition();
                     setResetModalVisible(false);
-                    showToast("🚀 New challenge started. Everyone's stars are back to zero.");
+                    showToast(t("dash.new_challenge"));
                   }}
                 >
-                  <Text style={styles.btnText}>Confirm & Reset</Text>
+                  <Text style={styles.btnText}>{t("dash.confirm_reset")}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.btn, { flex: 1, backgroundColor: "#ccc" }]}
                   onPress={() => setResetModalVisible(false)}
                 >
-                  <Text style={[styles.btnText, { color: "#000" }]}>Cancel</Text>
+                  <Text style={[styles.btnText, { color: "#000" }]}>{t("dash.cancel")}</Text>
                 </TouchableOpacity>
               </View>
             </View>
-          </View>
+          </ModalBackdrop>
         </Modal>
 
         <Modal visible={editTaskModalVisible} transparent animationType="slide">
-          <View style={styles.modalBack}>
+          <ModalBackdrop>
             <View style={styles.modalCard}>
-              <Text style={styles.modalTitle}>Edit Task</Text>
+              <Text style={styles.modalTitle}>{t("dash.edit_task")}</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Task Title"
+                placeholder={t("dash.task_title")}
                 value={editTaskTitle}
                 onChangeText={setEditTaskTitle}
               />
@@ -1157,7 +1154,7 @@ export default function ParentDashboard() {
                 >
                   <TextInput
                     style={[styles.input, { flex: 1 }]}
-                    placeholder="Subtask"
+                    placeholder={t("dash.subtask")}
                     value={s.title}
                     onChangeText={(txt) => {
                       const updated = [...editSubtasks];
@@ -1185,59 +1182,59 @@ export default function ParentDashboard() {
                   setEditSubtasks(updated);
                 }}
               >
-                <Text style={styles.btnText}>+ Add Subtask</Text>
+                <Text style={styles.btnText}>{t("dash.add_subtask")}</Text>
               </TouchableOpacity>
               <View style={{ flexDirection: "row", gap: 8, marginTop: 16 }}>
                 <TouchableOpacity
                   style={[styles.btn, { flex: 1, backgroundColor: "#28a745" }]}
                   onPress={handleEditTask}
                 >
-                  <Text style={styles.btnText}>Save</Text>
+                  <Text style={styles.btnText}>{t("dash.save")}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.btn, { flex: 1, backgroundColor: "#ccc" }]}
                   onPress={() => setEditTaskModalVisible(false)}
                 >
-                  <Text style={[styles.btnText, { color: "#000" }]}>Cancel</Text>
+                  <Text style={[styles.btnText, { color: "#000" }]}>{t("dash.cancel")}</Text>
                 </TouchableOpacity>
               </View>
             </View>
-          </View>
+          </ModalBackdrop>
         </Modal>
       </ScrollView>
       {/* The PIN prompt is an in-screen overlay, not a <Modal>: presenting a Modal
           while this screen is still sliding in can freeze the app on iOS. */}
       {authModalVisible && (
-        <View style={[StyleSheet.absoluteFill, styles.modalBack]}>
+        <ModalBackdrop style={StyleSheet.absoluteFill}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>
-              {parentPin ? "Enter Parent Access Code" : "Set Parent Access Code"}
+              {parentPin ? t("dash.enter_access_code") : t("dash.set_access_code")}
             </Text>
             <Text style={{ color: "#666", marginBottom: 12 }}>
               {parentPin
-                ? "Enter your 4-digit dashboard access code."
-                : "Create a 4-digit dashboard access code to protect parent access."}
+                ? t("dash.enter_access_code_msg")
+                : t("dash.set_access_code_msg")}
             </Text>
             {parentPin ? (
               <>
                 <TextInput
                   ref={parentUnlockPinRef}
                   autoFocus
-                  placeholder="4-digit PIN"
+                  placeholder={t("dash.pin_4")}
                   value={parentPinInput}
-                  onChangeText={(t) => setParentPinInput(t.replace(/[^0-9]/g, "").slice(0, 4))}
+                  onChangeText={(v) => setParentPinInput(v.replace(/[^0-9]/g, "").slice(0, 4))}
                   keyboardType="number-pad"
                   style={styles.input}
                 />
                 <View style={{ flexDirection: "row", gap: 8 }}>
                   <TouchableOpacity style={[styles.btn, { flex: 1 }]} onPress={verifyParentPin}>
-                    <Text style={styles.btnText}>Unlock</Text>
+                    <Text style={styles.btnText}>{t("dash.unlock")}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.btn, { flex: 1, backgroundColor: "#ccc" }]}
                     onPress={() => router.back()}
                   >
-                    <Text style={[styles.btnText, { color: "#000" }]}>Back</Text>
+                    <Text style={[styles.btnText, { color: "#000" }]}>{t("dash.back")}</Text>
                   </TouchableOpacity>
                 </View>
               </>
@@ -1246,34 +1243,34 @@ export default function ParentDashboard() {
                 <TextInput
                   ref={parentSetupPinRef}
                   autoFocus
-                  placeholder="4-digit PIN"
+                  placeholder={t("dash.pin_4")}
                   value={setupPin}
-                  onChangeText={(t) => setSetupPin(t.replace(/[^0-9]/g, "").slice(0, 4))}
+                  onChangeText={(v) => setSetupPin(v.replace(/[^0-9]/g, "").slice(0, 4))}
                   keyboardType="number-pad"
                   style={styles.input}
                 />
                 <TextInput
-                  placeholder="Confirm 4-digit PIN"
+                  placeholder={t("dash.confirm_pin_4")}
                   value={setupConfirmPin}
-                  onChangeText={(t) => setSetupConfirmPin(t.replace(/[^0-9]/g, "").slice(0, 4))}
+                  onChangeText={(v) => setSetupConfirmPin(v.replace(/[^0-9]/g, "").slice(0, 4))}
                   keyboardType="number-pad"
                   style={styles.input}
                 />
                 <View style={{ flexDirection: "row", gap: 8 }}>
                   <TouchableOpacity style={[styles.btn, { flex: 1 }]} onPress={saveParentPin}>
-                    <Text style={styles.btnText}>Save PIN</Text>
+                    <Text style={styles.btnText}>{t("dash.save_pin")}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.btn, { flex: 1, backgroundColor: "#ccc" }]}
                     onPress={() => router.back()}
                   >
-                    <Text style={[styles.btnText, { color: "#000" }]}>Back</Text>
+                    <Text style={[styles.btnText, { color: "#000" }]}>{t("dash.back")}</Text>
                   </TouchableOpacity>
                 </View>
               </>
             )}
           </View>
-        </View>
+        </ModalBackdrop>
       )}
     </View>
   );
@@ -1302,10 +1299,15 @@ const styles = StyleSheet.create({
   subtitle: { color: colors.textMuted, marginTop: spacing.xs },
   summaryRow: {
     flexDirection: "row",
-    marginTop: spacing.lg,
-    justifyContent: "space-between",
+    gap: spacing.sm,
   },
-  summaryTile: { alignItems: "center", flex: 1 },
+  summaryTile: {
+    alignItems: "center",
+    flex: 1,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.md,
+    backgroundColor: palette.primarySoft,
+  },
   tileNumber: { fontSize: 22, fontWeight: "800", color: colors.primary },
   tileLabel: { color: colors.textMuted, fontSize: 12, marginTop: spacing.xs },
   leaderRow: {
@@ -1322,7 +1324,17 @@ const styles = StyleSheet.create({
   leaderName: { fontSize: 15, fontWeight: "800", color: colors.text, marginTop: 2 },
   leaderChevron: { fontSize: 22, color: colors.textFaint },
   crownedAvatar: { marginTop: spacing.lg },
-  actionsRow: { flexDirection: "row", gap: spacing.md, marginTop: spacing.lg },
+  actionsRow: { flexDirection: "row", gap: spacing.md, marginTop: spacing.md },
+  minorActionsRow: { flexDirection: "row", gap: spacing.md, marginTop: spacing.sm },
+  minorBtn: {
+    flex: 1,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.md,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    alignItems: "center",
+  },
+  minorBtnText: { color: colors.textMuted, fontWeight: "700", fontSize: 13 },
   primaryBtn: {
     flex: 1,
     backgroundColor: colors.primary,
@@ -1396,11 +1408,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     borderWidth: 1,
     borderColor: colors.border,
-  },
-  modalBack: {
-    flex: 1,
-    justifyContent: "center",
-    backgroundColor: colors.overlay,
   },
   modalCard: {
     margin: spacing.xl,

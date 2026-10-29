@@ -3,59 +3,60 @@ import { Alert, Linking, StyleSheet, View } from 'react-native';
 import { AppText, Button, Card, ListRow } from '@/components/ui';
 import { colors, spacing } from '@/constants/theme';
 import ArticleScreen from '../components/ArticleScreen';
+import { t } from "@/lib/i18n";
 
 const HOURS = [
-  { day: 'Monday – Friday', time: '9:00 AM – 6:00 PM' },
-  { day: 'Saturday', time: '10:00 AM – 4:00 PM' },
-  { day: 'Sunday', time: 'Closed' },
+  { day: 'contact.mon_fri', time: 'contact.mon_fri_time' },
+  { day: 'contact.sat', time: 'contact.sat_time' },
+  { day: 'contact.sun', time: 'contact.closed' },
 ];
 
 export default function ContactSupportScreen() {
   const openEmail = () => {
     Linking.openURL('mailto:starkid.app@gmail.com').catch(() =>
-      Alert.alert('Couldn\'t open email', 'Please email us at starkid.app@gmail.com.'),
+      Alert.alert(t('links.email_fail'), t('links.email_fail_msg')),
     );
   };
 
   const openWhatsApp = () => {
     Linking.openURL('https://wa.me/971561326221').catch(() =>
-      Alert.alert('Couldn\'t open WhatsApp', 'Please make sure WhatsApp is installed.'),
+      Alert.alert(t('links.whatsapp_fail'), t('links.whatsapp_fail_msg')),
     );
   };
 
   return (
     <ArticleScreen
-      navTitle="Contact Support"
-      title="Get in Touch"
+      navTitle={t('contact.nav')}
+      title={t('contact.title')}
       emoji="📞"
-      subtitle="We're here to help — choose your preferred way to reach us."
+      subtitle={t('contact.subtitle')}
       accent="danger"
     >
       <View style={styles.rows}>
         <ListRow
           emoji="📧"
           iconTone="info"
-          title="Email Us"
+          title={t('contact.email')}
           subtitle="starkid.app@gmail.com"
           onPress={openEmail}
         />
         <ListRow
           emoji="💬"
           iconTone="success"
-          title="WhatsApp"
-          subtitle="Chat with us instantly"
+          title={t('contact.whatsapp')}
+          subtitle={t('contact.whatsapp_sub')}
           onPress={openWhatsApp}
         />
       </View>
 
       <Card tone="primary" accentBar>
-        <AppText variant="subtitle">⏰ Support Hours</AppText>
+        <AppText variant="subtitle">{t('contact.hours')}</AppText>
         <View style={styles.hours}>
           {HOURS.map((h) => (
             <View key={h.day} style={styles.hourRow}>
-              <AppText variant="body">{h.day}</AppText>
+              <AppText variant="body">{t(h.day)}</AppText>
               <AppText variant="bodyStrong" color="primary">
-                {h.time}
+                {t(h.time)}
               </AppText>
             </View>
           ))}
@@ -63,12 +64,12 @@ export default function ContactSupportScreen() {
       </Card>
 
       <Card>
-        <AppText variant="subtitle">❓ Frequently Asked Questions</AppText>
+        <AppText variant="subtitle">{t('contact.faq')}</AppText>
         <AppText variant="body" color="textMuted" style={styles.p}>
-          Before reaching out, check our FAQ for quick answers to common questions.
+          {t('contact.faq_body')}
         </AppText>
         <Button
-          title="View FAQ"
+          title={t('contact.view_faq')}
           variant="subtle"
           size="sm"
           fullWidth
@@ -78,10 +79,9 @@ export default function ContactSupportScreen() {
       </Card>
 
       <Card tone="star" accentBar>
-        <AppText variant="subtitle">⚡ Response Time</AppText>
+        <AppText variant="subtitle">{t('contact.response')}</AppText>
         <AppText variant="body" color="textMuted" style={styles.p}>
-          We aim to respond to all inquiries within 24 hours during business days. Thanks for your
-          patience!
+          {t('contact.response_body')}
         </AppText>
       </Card>
     </ArticleScreen>

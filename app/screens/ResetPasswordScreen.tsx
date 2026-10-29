@@ -8,6 +8,7 @@ import AuthScreen from "../components/AuthScreen";
 import { useLoading, useWithLoading } from "../context/LoadingContext";
 import { friendlyErrorMessage } from "../utils/errorUtils";
 import { alertNetworkError, checkInternet, isNetworkError } from "../utils/netUtils";
+import { t } from "@/lib/i18n";
 
 export default function ResetPasswordScreen() {
     const router = useRouter();
@@ -17,7 +18,7 @@ export default function ResetPasswordScreen() {
 
     const resetPassword = async () => {
         if (!email) {
-            Alert.alert("Type your email", "Please type the email you used to register, then tap the button again.");
+            Alert.alert(t("reset.type_email"), t("reset.type_email_msg"));
             return;
         }
 
@@ -36,15 +37,15 @@ export default function ResetPasswordScreen() {
             if (isNetworkError(error)) {
                 alertNetworkError();
             } else if (error?.code === "auth/invalid-email") {
-                Alert.alert("Invalid email", "Please enter a valid email address.");
+                Alert.alert(t("reset.invalid_email"), t("reset.invalid_email_msg"));
             } else if (error?.code === "auth/user-not-found") {
                 Alert.alert(
-                    "You are not registered yet",
-                    "This email does not have an account.\n\n1. Tap \"Register\" below.\n2. Make your account.\n3. Then log in.",
+                    t("reset.not_registered"),
+                    t("reset.not_registered_msg"),
                     [
-                        { text: "Try again", style: "cancel" },
+                        { text: t("reset.try_again"), style: "cancel" },
                         {
-                            text: "Register",
+                            text: t("reset.register"),
                             onPress: () =>
                                 router.replace({
                                     pathname: "/screens/RegisterScreen",
@@ -55,8 +56,8 @@ export default function ResetPasswordScreen() {
                 );
             } else {
                 Alert.alert(
-                    "Couldn't send the email",
-                    friendlyErrorMessage(error, "We couldn't send the email. Please try again.")
+                    t("reset.send_failed"),
+                    friendlyErrorMessage(error, t("reset.send_failed_msg"))
                 );
             }
         }
@@ -64,11 +65,11 @@ export default function ResetPasswordScreen() {
 
     return (
         <AuthScreen
-            title="Reset Password"
-            subtitle="Enter the email for your account and we'll send you a reset link."
+            title={t("reset.title")}
+            subtitle={t("reset.subtitle")}
             footer={
                 <Button
-                    title="Back to login"
+                    title={t("reset.back_to_login")}
                     variant="ghost"
                     size="sm"
                     haptic={false}
@@ -77,7 +78,7 @@ export default function ResetPasswordScreen() {
             }
         >
             <TextField
-                label="Email"
+                label={t("reset.email")}
                 placeholder="you@example.com"
                 value={email}
                 onChangeText={(t) => setEmail(t.replace(/\s/g, ""))}
@@ -89,7 +90,7 @@ export default function ResetPasswordScreen() {
             />
 
             <Button
-                title="Send Reset Link"
+                title={t("reset.send_link")}
                 onPress={resetPassword}
                 loading={loading}
                 fullWidth

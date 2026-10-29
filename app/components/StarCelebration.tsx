@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
 import { AppText } from '@/components/ui';
 import { palette, radii, shadows, spacing } from '@/constants/theme';
+import { t } from "@/lib/i18n";
 
 const BURST = ['⭐', '✨', '🌟', '⭐', '✨', '🌟', '⭐', '✨'];
 const BURST_RADIUS = 120;
@@ -16,7 +17,11 @@ export type Celebration = {
 
 /**
  * Full-screen, non-blocking "you did it" animation: a big star pops in,
- * small stars burst outward and "+N ⭐" floats up. Hides itself after ~1.6s.
+ * small stars burst outward and "+N ⭐" floats up. Fades out after ~1.6s.
+ *
+ * Once shown, the overlay stays mounted (invisible, opacity 0) instead of
+ * unmounting: a remounted animated overlay never became visible again on the
+ * new architecture, so only the kid's first mark used to celebrate.
  */
 export default function StarCelebration({
   celebration,
@@ -28,9 +33,12 @@ export default function StarCelebration({
   const pop = useRef(new Animated.Value(0)).current;
   const burst = useRef(new Animated.Value(0)).current;
   const fade = useRef(new Animated.Value(0)).current;
+  // Keeps the last message on screen while it fades out after `celebration` clears.
+  const [shown, setShown] = useState<Celebration | null>(null);
 
   useEffect(() => {
     if (!celebration) return;
+    setShown(celebration);
     pop.setValue(0);
     burst.setValue(0);
     fade.setValue(1);
@@ -54,7 +62,7 @@ export default function StarCelebration({
     return () => animation.stop();
   }, [celebration, pop, burst, fade, onDone]);
 
-  if (!celebration) return null;
+  if (!shown) return null;
 
   const starScale = pop.interpolate({ inputRange: [0, 1], outputRange: [0.2, 1] });
   const floatUp = burst.interpolate({ inputRange: [0, 1], outputRange: [20, -10] });
@@ -84,13 +92,13 @@ export default function StarCelebration({
         })}
 
         <Animated.Text style={[styles.bigStar, { transform: [{ scale: starScale }] }]}>
-          {celebration.taskDone ? '🏆' : '⭐'}
+          {shown.taskDone ? '🏆' : '⭐'}
         </Animated.Text>
       </View>
 
       <Animated.View style={[styles.pill, { transform: [{ translateY: floatUp }, { scale: starScale }] }]}>
         <AppText variant="title" color="#fff" align="center">
-          {celebration.taskDone ? `All done! +${celebration.stars} ⭐` : `+${celebration.stars} ⭐`}
+          {shown.taskDone ? t('celebration.all_done', { stars: shown.stars }) : `+${shown.stars} ⭐`}
         </AppText>
       </Animated.View>
     </Animated.View>

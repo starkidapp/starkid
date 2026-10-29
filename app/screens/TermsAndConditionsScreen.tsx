@@ -2,62 +2,22 @@ import { Alert, Linking, StyleSheet, View } from 'react-native';
 import { AppText, Button, Card } from '@/components/ui';
 import { spacing } from '@/constants/theme';
 import ArticleScreen from '../components/ArticleScreen';
+import { t } from "@/lib/i18n";
 
-const SECTIONS: { title: string; body: string }[] = [
-  {
-    title: '1. User Agreement',
-    body:
-      'By using StarBo, you agree to these terms and conditions. If you do not agree, please do not use our application.',
-  },
-  {
-    title: '2. Age Requirements',
-    body:
-      "StarBo is designed for children with parental supervision. Parents are responsible for ensuring their children's usage complies with these terms.",
-  },
-  {
-    title: '3. User Accounts',
-    body:
-      'You are responsible for maintaining the confidentiality of your account credentials. Parents must ensure their PIN/password is kept secure.',
-  },
-  {
-    title: '4. Prohibited Activities',
-    body:
-      '• Unauthorized access or hacking\n• Sending harmful or abusive content\n• Attempting to circumvent parental controls\n• Reverse engineering or copying our app',
-  },
-  {
-    title: '5. Intellectual Property',
-    body:
-      'All content, features, and functionality of StarBo are owned by us, licensed by our licensors, or otherwise used by permission.',
-  },
-  {
-    title: '6. Limitation of Liability',
-    body:
-      'StarBo is provided “as is” without warranties. We are not liable for indirect, incidental, or consequential damages arising from your use of the app.',
-  },
-  {
-    title: '7. Termination',
-    body:
-      'We reserve the right to terminate accounts that violate these terms or engage in prohibited activities.',
-  },
-  {
-    title: '8. Changes to Terms',
-    body:
-      'We may update these terms periodically. Continued use of StarBo means you accept the updated terms.',
-  },
-  {
-    title: '9. Governing Law',
-    body: 'These terms are governed by applicable local and international laws.',
-  },
-];
+// Section text lives in lib/locales/*.json (terms.s1 / terms.s1_body …).
+const SECTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => ({
+  title: `terms.s${n}`,
+  body: `terms.s${n}_body`,
+}));
 
 export default function TermsAndConditionsScreen() {
   const openEmail = async () => {
     const url = `mailto:starkid.app@gmail.com?subject=${encodeURIComponent('Legal Inquiry')}`;
     try {
       if (await Linking.canOpenURL(url)) await Linking.openURL(url);
-      else Alert.alert('Couldn\'t open email', 'Please email us at starkid.app@gmail.com.');
+      else Alert.alert(t('links.email_fail'), t('links.email_fail_msg'));
     } catch {
-      Alert.alert('Couldn\'t open email', 'Please email us at starkid.app@gmail.com.');
+      Alert.alert(t('links.email_fail'), t('links.email_fail_msg'));
     }
   };
 
@@ -65,39 +25,39 @@ export default function TermsAndConditionsScreen() {
     const url = 'https://wa.me/971561326221';
     try {
       if (await Linking.canOpenURL(url)) await Linking.openURL(url);
-      else Alert.alert('Couldn\'t open WhatsApp', 'Please make sure WhatsApp is installed.');
+      else Alert.alert(t('links.whatsapp_fail'), t('links.whatsapp_fail_msg'));
     } catch {
-      Alert.alert('Couldn\'t open WhatsApp', 'Please make sure WhatsApp is installed.');
+      Alert.alert(t('links.whatsapp_fail'), t('links.whatsapp_fail_msg'));
     }
   };
 
   return (
     <ArticleScreen
-      navTitle="Terms & Conditions"
-      title="Terms & Conditions"
+      navTitle={t('terms.title')}
+      title={t('terms.title')}
       emoji="📜"
-      subtitle="Last updated: June 2026"
+      subtitle={t('links.last_updated')}
       accent="success"
     >
       <Card>
         {SECTIONS.map((s) => (
           <View key={s.title} style={styles.section}>
-            <AppText variant="bodyStrong">{s.title}</AppText>
+            <AppText variant="bodyStrong">{t(s.title)}</AppText>
             <AppText variant="body" color="textMuted" style={styles.body}>
-              {s.body}
+              {t(s.body)}
             </AppText>
           </View>
         ))}
       </Card>
 
       <Card tone="success" accentBar>
-        <AppText variant="subtitle">10. Contact Us</AppText>
+        <AppText variant="subtitle">{t('links.contact_us')}</AppText>
         <AppText variant="body" color="textMuted" style={styles.body}>
-          For questions about these terms, contact us:
+          {t('terms.contact_body')}
         </AppText>
         <View style={styles.actions}>
-          <Button title="📧  Email us" variant="subtle" size="sm" fullWidth onPress={openEmail} />
-          <Button title="💬  Chat via WhatsApp" variant="subtle" size="sm" fullWidth onPress={openWhatsApp} />
+          <Button title={t('links.email_us')} variant="subtle" size="sm" fullWidth onPress={openEmail} />
+          <Button title={t('links.chat_whatsapp')} variant="subtle" size="sm" fullWidth onPress={openWhatsApp} />
         </View>
       </Card>
     </ArticleScreen>

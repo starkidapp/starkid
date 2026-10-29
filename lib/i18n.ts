@@ -68,13 +68,15 @@ export async function setLocale(locale: AppLocale) {
   applyDirection(locale);
 
   try {
-    if (__DEV__) {
+    await Updates.reloadAsync();
+  } catch {
+    // expo-updates is off in dev and in builds without an updates URL;
+    // DevSettings.reload restarts the JS app in both cases on iOS.
+    try {
       DevSettings.reload();
-    } else {
-      await Updates.reloadAsync();
+    } catch (error) {
+      console.warn('Failed reloading after locale change', error);
     }
-  } catch (error) {
-    console.warn('Failed reloading after locale change', error);
   }
 }
 

@@ -2,29 +2,29 @@ import { StyleSheet, View } from 'react-native';
 import { AppText, Badge, Card } from '@/components/ui';
 import { spacing } from '@/constants/theme';
 import ArticleScreen from '../components/ArticleScreen';
+import { t } from "@/lib/i18n";
 
 const LIBRARIES = [
-  { name: 'React Native', license: 'MIT', description: 'A framework for building native apps with React.' },
-  { name: 'Expo', license: 'MIT', description: 'An open-source platform for universal native apps with React.' },
-  { name: 'Firebase', license: 'Apache 2.0', description: 'A platform for building web and mobile apps.' },
-  { name: 'Expo Router', license: 'MIT', description: 'File-based routing for Expo applications.' },
-  { name: 'React Navigation', license: 'MIT', description: 'Routing and navigation for React Native apps.' },
-  { name: 'Lottie', license: 'Apache 2.0', description: 'Renders After Effects animations natively.' },
+  { name: 'React Native', license: 'MIT', description: 'licenses.rn' },
+  { name: 'Expo', license: 'MIT', description: 'licenses.expo' },
+  { name: 'Firebase', license: 'Apache 2.0', description: 'licenses.firebase' },
+  { name: 'Expo Router', license: 'MIT', description: 'licenses.router' },
+  { name: 'React Navigation', license: 'MIT', description: 'licenses.nav' },
+  { name: 'Lottie', license: 'Apache 2.0', description: 'licenses.lottie' },
 ];
 
 export default function LicensesScreen() {
   return (
     <ArticleScreen
-      navTitle="Open Source Licenses"
-      title="Open Source Licenses"
+      navTitle={t('licenses.title')}
+      title={t('licenses.title')}
       emoji="⚖️"
-      subtitle="Third-party libraries we use"
+      subtitle={t('licenses.subtitle')}
       accent="danger"
     >
       <Card tone="danger" accentBar>
         <AppText variant="body" color="textMuted">
-          StarBo is built with amazing open-source libraries. We&apos;re grateful for the developers
-          who maintain these projects.
+          {t('licenses.intro')}
         </AppText>
       </Card>
 
@@ -39,16 +39,15 @@ export default function LicensesScreen() {
             </Badge>
           </View>
           <AppText variant="caption" color="textMuted" style={{ marginTop: spacing.xs }}>
-            {lib.description}
+            {t(lib.description)}
           </AppText>
         </Card>
       ))}
 
       <Card tone="primary" accentBar>
-        <AppText variant="subtitle">📝 License Information</AppText>
+        <AppText variant="subtitle">{t('licenses.info')}</AppText>
         <AppText variant="body" color="textMuted" style={{ marginTop: spacing.xs }}>
-          Each library is licensed under its respective open-source license. For details, visit each
-          project&apos;s repository.
+          {t('licenses.info_body')}
         </AppText>
       </Card>
     </ArticleScreen>

@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText, IconButton } from "@/components/ui";
 import { colors, radii, shadows, spacing } from "@/constants/theme";
+import { t } from "@/lib/i18n";
 
 interface ScreenHeaderProps {
   title: string;
@@ -49,7 +50,7 @@ export default function ScreenHeader({
           <Pressable
             onPress={handleBack}
             accessibilityRole="button"
-            accessibilityLabel="Go back"
+            accessibilityLabel={t("common.go_back")}
             hitSlop={10}
             style={({ pressed }) => [styles.back, pressed && styles.backPressed]}
           >

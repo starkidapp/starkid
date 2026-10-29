@@ -2,21 +2,11 @@ import { StyleSheet, View } from 'react-native';
 import { AppText, Card } from '@/components/ui';
 import { colors, spacing } from '@/constants/theme';
 import ArticleScreen from '../components/ArticleScreen';
+import { t } from "@/lib/i18n";
 
-const VALUES = [
-  { title: '🛡️ Safety First', text: "Your family's privacy and safety are our top priority." },
-  { title: '👨‍👩‍👧‍👦 Family Focused', text: 'We design everything with families in mind.' },
-  { title: '🎨 Creative & Fun', text: 'Learning should be enjoyable for everyone.' },
-  { title: '🌱 Growth Mindset', text: 'We believe in continuous improvement and learning.' },
-];
+const VALUES = [1, 2, 3, 4].map((n) => ({ title: `about.v${n}`, text: `about.v${n}_text` }));
 
-const FEATURES = [
-  { title: '✓ Easy to Use', text: 'Simple interface designed for kids and parents' },
-  { title: '✓ Secure & Private', text: 'Your data is encrypted and protected' },
-  { title: '✓ Parent Controls', text: 'Full control over tasks, rewards, and progress' },
-  { title: '✓ Real-time Tracking', text: 'Monitor progress instantly' },
-  { title: '✓ Fun Gamification', text: 'Earn stars and unlock rewards' },
-];
+const FEATURES = [1, 2, 3, 4, 5].map((n) => ({ title: `about.f${n}`, text: `about.f${n}_text` }));
 
 function Bullets({ items }: { items: { title: string; text: string }[] }) {
   return (
@@ -24,10 +14,10 @@ function Bullets({ items }: { items: { title: string; text: string }[] }) {
       {items.map((it) => (
         <View key={it.title} style={styles.bullet}>
           <AppText variant="label" color="primary">
-            {it.title}
+            {t(it.title)}
           </AppText>
           <AppText variant="caption" color="textMuted" style={{ marginTop: 2 }}>
-            {it.text}
+            {t(it.text)}
           </AppText>
         </View>
       ))}
@@ -38,48 +28,44 @@ function Bullets({ items }: { items: { title: string; text: string }[] }) {
 export default function AboutUsScreen() {
   return (
     <ArticleScreen
-      navTitle="About StarBo"
-      title="Our Story"
+      navTitle={t('about.nav')}
+      title={t('about.title')}
       emoji="🚀"
-      subtitle="Making parenting and personal growth fun"
+      subtitle={t('about.subtitle')}
       accent="success"
     >
       <Card>
-        <AppText variant="subtitle">🎯 Our Mission</AppText>
+        <AppText variant="subtitle">{t('about.mission')}</AppText>
         <AppText variant="body" color="textMuted" style={styles.p}>
-          StarBo was created with a simple mission: to make parenting easier and help children
-          develop good habits in a fun, engaging way. We believe that motivation through positive
-          reinforcement creates lasting behavioral change.
+          {t('about.mission_body')}
         </AppText>
       </Card>
 
       <Card>
-        <AppText variant="subtitle">✨ Our Vision</AppText>
+        <AppText variant="subtitle">{t('about.vision')}</AppText>
         <AppText variant="body" color="textMuted" style={styles.p}>
-          We envision a world where families connect through shared goals and celebrate achievements
-          together. We want to empower parents with tools to guide their children and help kids
-          understand the value of hard work and persistence.
+          {t('about.vision_body')}
         </AppText>
       </Card>
 
       <Card>
         <AppText variant="subtitle" style={styles.h}>
-          💜 Our Values
+          {t('about.values')}
         </AppText>
         <Bullets items={VALUES} />
       </Card>
 
       <Card>
         <AppText variant="subtitle" style={styles.h}>
-          ⭐ Why StarBo?
+          {t('about.why')}
         </AppText>
         <Bullets items={FEATURES} />
       </Card>
 
       <Card tone="info" accentBar>
-        <AppText variant="subtitle">📞 Get in Touch</AppText>
+        <AppText variant="subtitle">{t('about.touch')}</AppText>
         <AppText variant="body" color="textMuted" style={styles.p}>
-          Have suggestions or feedback? We&apos;d love to hear from you!
+          {t('about.touch_body')}
         </AppText>
         <AppText variant="bodyStrong" color="info" style={styles.p}>
           📧 starkid.app@gmail.com
@@ -88,7 +74,7 @@ export default function AboutUsScreen() {
 
       <Card tone="success" accentBar>
         <AppText variant="bodyStrong" color="success" align="center">
-          Thank you for being part of the StarBo family! 💚
+          {t('about.thanks')}
         </AppText>
       </Card>
     </ArticleScreen>

@@ -3,6 +3,7 @@
 import { Linking, Platform, StyleSheet, View } from "react-native";
 import { AppText, Button, Screen } from "@/components/ui";
 import { spacing } from "@/constants/theme";
+import { t } from "@/lib/i18n";
 
 type Props = {
   appStoreUrl: string;
@@ -23,12 +24,12 @@ export default function MandatoryUpdateScreen({
       <View style={styles.content}>
         <AppText style={styles.icon}>🚀</AppText>
         <AppText variant="title" align="center">
-          Update Required
+          {t("mandatoryUpdate.title")}
         </AppText>
         <AppText variant="body" color="textMuted" align="center" style={styles.message}>
-          A new version of StarBo is available. Please update the app to keep using it.
+          {t("mandatoryUpdate.message")}
         </AppText>
-        <Button title="Update Now" onPress={openStore} playful size="lg" />
+        <Button title={t("mandatoryUpdate.update_now")} onPress={openStore} playful size="lg" />
       </View>
     </Screen>
   );

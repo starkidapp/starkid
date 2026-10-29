@@ -3,11 +3,12 @@ import { Tabs, usePathname } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, fontFamilyForWeight, palette, radii, shadows } from "@/constants/theme";
+import { t } from "@/lib/i18n";
 
 const TABS = [
-  { name: "index", label: "Home", icon: "home-outline", activeIcon: "home", color: palette.primary },
-  { name: "explore", label: "Explore", icon: "rocket-outline", activeIcon: "rocket", color: palette.accent },
-  { name: "parent", label: "Parent", icon: "ribbon-outline", activeIcon: "ribbon", color: palette.success },
+  { name: "index", label: "tabs.home", icon: "home-outline", activeIcon: "home", color: palette.primary },
+  { name: "explore", label: "tabs.explore", icon: "rocket-outline", activeIcon: "rocket", color: palette.accent },
+  { name: "parent", label: "tabs.parent", icon: "ribbon-outline", activeIcon: "ribbon", color: palette.success },
 ] as const;
 
 function getActiveIndex(pathname: string): number {
@@ -32,7 +33,7 @@ function TabButton({ props, focused, label, icon, activeIcon, color }: {
           size={22}
           color={focused ? colors.onPrimary : colors.textFaint}
         />
-        {focused && <Text style={styles.label}>{label}</Text>}
+        {focused && <Text style={styles.label}>{t(label)}</Text>}
       </View>
     </Pressable>
   );

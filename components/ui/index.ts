@@ -41,3 +41,6 @@ export type { IconButtonProps, IconButtonVariant } from './IconButton';
 
 export { PlayfulBackground } from './PlayfulBackground';
 export type { PlayfulBackgroundProps } from './PlayfulBackground';
+
+export { ModalBackdrop } from './ModalBackdrop';
+export type { ModalBackdropProps } from './ModalBackdrop';

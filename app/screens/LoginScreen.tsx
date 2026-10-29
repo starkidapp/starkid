@@ -1,7 +1,6 @@
 // app/screens/LoginScreen.tsx
 
 import { auth, db } from "@/lib/firebase/config";
-import { t } from "@/lib/i18n";
 import { Button, TextField } from "@/components/ui";
 import { useRouter } from "expo-router";
 import { onAuthStateChanged, sendEmailVerification, signInWithEmailAndPassword, signOut } from "firebase/auth";
@@ -9,12 +8,14 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert } from "react-native";
 import AuthScreen from "../components/AuthScreen";
+import { useLocale } from "../context/LocaleContext";
 import { useLoading } from "../context/LoadingContext";
 import { useToast } from "../context/ToastContext";
 import { friendlyErrorMessage } from "../utils/errorUtils";
 import { alertNetworkError, checkInternet, isNetworkError } from "../utils/netUtils";
 
 export default function LoginScreen() {
+  const { t } = useLocale();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

@@ -4,67 +4,24 @@ import { Ionicons } from '@expo/vector-icons';
 import { AppText, Card } from '@/components/ui';
 import { colors, spacing } from '@/constants/theme';
 import ArticleScreen from '../components/ArticleScreen';
+import { t } from "@/lib/i18n";
 
-const FAQ_ITEMS = [
-  {
-    id: 1,
-    question: '🎯 How do I earn stars?',
-    answer:
-      'Stars are earned by completing tasks and activities set by your parent. Each completed task gives you a certain number of stars based on its difficulty.',
-  },
-  {
-    id: 2,
-    question: '🏆 What can I redeem my stars for?',
-    answer:
-      'You can redeem your stars for rewards set up by your parent. These could be screen time, treats, privileges, or other special rewards.',
-  },
-  {
-    id: 3,
-    question: '👨‍👩‍👧 How does the parent dashboard work?',
-    answer:
-      "Parents can create tasks, set rewards, view progress, and manage their child's activities all in one place. The dashboard is passcode-protected for security.",
-  },
-  {
-    id: 4,
-    question: '📊 Can I see my progress?',
-    answer:
-      'Yes! You can see your stars for the current challenge, completed tasks, and leaderboard standings on the home and explore screens.',
-  },
-  {
-    id: 5,
-    question: '🔒 Is my information safe?',
-    answer:
-      'We take privacy seriously. All your information is encrypted and secured. Please review our Privacy Policy for more details.',
-  },
-  {
-    id: 6,
-    question: '📱 What devices can I use?',
-    answer:
-      'StarBo is available on iOS and Android devices. You can sync your account across multiple devices.',
-  },
-  {
-    id: 7,
-    question: '🆘 I forgot my PIN. What do I do?',
-    answer:
-      'A parent can reset your PIN from the Parent Profile screen. Parents can reset their own password from the login screen.',
-  },
-  {
-    id: 8,
-    question: '💔 How do I delete my account?',
-    answer:
-      "Contact our support team to request account deletion. We'll guide you through the process.",
-  },
-];
+// Question/answer text lives in lib/locales/*.json (faq.q1 / faq.a1 …).
+const FAQ_ITEMS = [1, 2, 3, 4, 5, 6, 7, 8].map((id) => ({
+  id,
+  question: `faq.q${id}`,
+  answer: `faq.a${id}`,
+}));
 
 export default function FaqScreen() {
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
   return (
     <ArticleScreen
-      navTitle="FAQ & Help"
-      title="Frequently Asked Questions"
+      navTitle={t('faq.nav')}
+      title={t('faq.title')}
       emoji="❓"
-      subtitle="Find quick answers to your questions"
+      subtitle={t('faq.subtitle')}
       accent="accent"
     >
       {FAQ_ITEMS.map((item) => {
@@ -76,7 +33,7 @@ export default function FaqScreen() {
               onPress={() => setExpandedId(open ? null : item.id)}
             >
               <AppText variant="bodyStrong" style={{ flex: 1 }}>
-                {item.question}
+                {t(item.question)}
               </AppText>
               <Ionicons
                 name={open ? 'chevron-up' : 'chevron-down'}
@@ -87,7 +44,7 @@ export default function FaqScreen() {
             {open ? (
               <View style={styles.answer}>
                 <AppText variant="body" color="textMuted">
-                  {item.answer}
+                  {t(item.answer)}
                 </AppText>
               </View>
             ) : null}
@@ -96,10 +53,9 @@ export default function FaqScreen() {
       })}
 
       <Card tone="success" accentBar>
-        <AppText variant="subtitle">🆘 Still need help?</AppText>
+        <AppText variant="subtitle">{t('faq.still_help')}</AppText>
         <AppText variant="body" color="textMuted" style={{ marginTop: spacing.xs }}>
-          If you couldn&apos;t find your answer, contact our support team — we&apos;re always happy to
-          help.
+          {t('faq.still_help_msg')}
         </AppText>
       </Card>
     </ArticleScreen>

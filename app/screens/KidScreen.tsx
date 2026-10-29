@@ -31,6 +31,7 @@ import KidAvatar from '../components/KidAvatar';
 import ScreenHeader from '../components/ScreenHeader';
 import StarCelebration, { type Celebration } from '../components/StarCelebration';
 import { useKids, type Kid } from '../context/KidContext';
+import { t } from "@/lib/i18n";
 
 // Each task gets its own colour so the list reads as a rainbow, not a grey stack.
 const TASK_COLORS = [
@@ -72,8 +73,8 @@ export default function KidScreen() {
   function markSubtask(taskId: string, subtaskId: string) {
     if (!selectedKid) {
       Alert.alert(
-        'Tap your picture first',
-        'Tap your picture at the top of the screen and type your PIN. Then you can mark your tasks.',
+        t('kidScreen.pick_first_title'),
+        t('kidScreen.pick_first_msg'),
       );
       return;
     }
@@ -81,7 +82,7 @@ export default function KidScreen() {
       const res = toggleCompletion(selectedKid.id, taskId, subtaskId);
       if (res && res.added) {
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-        const task = tasks.find((t) => t.id === taskId);
+        const task = tasks.find((tk) => tk.id === taskId);
         const total = task?.subtasks.length || 0;
         const today = new Date().toISOString().slice(0, 10);
         const existing = completions.filter(
@@ -97,7 +98,7 @@ export default function KidScreen() {
       }
     } catch (err) {
       console.warn('toggleCompletion error', err);
-      Alert.alert('Something went wrong', 'Please tap the task again.');
+      Alert.alert(t('kidScreen.error_title'), t('kidScreen.error_msg'));
     }
   }
 
@@ -117,8 +118,8 @@ export default function KidScreen() {
     } else {
       setPinValue('');
       Alert.alert(
-        'Wrong PIN',
-        'That PIN is not correct. Please try again.\n\nForgot your PIN? Ask your mom or dad.',
+        t('kidScreen.wrong_pin'),
+        t('kidScreen.wrong_pin_msg'),
       );
     }
   }
@@ -135,7 +136,7 @@ export default function KidScreen() {
     <View style={{ flex: 1 }}>
       <PlayfulBackground />
       <ScreenHeader
-        title={selectedKid ? selectedKid.name : 'Who are you?'}
+        title={selectedKid ? selectedKid.name : t('kidScreen.who_are_you')}
         onBackPress={() => router.back()}
         transparent
       />
@@ -151,10 +152,10 @@ export default function KidScreen() {
                   <AppText style={styles.bannerEmoji}>🌟</AppText>
                   <View style={{ flex: 1 }}>
                     <AppText variant="heading" color="#fff">
-                      Hello, superstar!
+                      {t('kidScreen.hello')}
                     </AppText>
                     <AppText variant="caption" color="rgba(255,255,255,0.92)">
-                      Tap your picture below to start earning stars.
+                      {t('kidScreen.hello_sub')}
                     </AppText>
                   </View>
                 </BubbleBanner>
@@ -178,7 +179,7 @@ export default function KidScreen() {
                 )}
                 ListEmptyComponent={
                   <AppText variant="body" color="textMuted">
-                    No kids yet — ask a parent to add you.
+                    {t('kidScreen.no_kids')}
                   </AppText>
                 }
               />
@@ -187,7 +188,7 @@ export default function KidScreen() {
                 <BubbleBanner colors={[palette.accent, palette.star]}>
                   <View style={styles.totals}>
                     <AppText variant="label" color="rgba(255,255,255,0.95)">
-                      TOTAL STARS
+                      {t('kidScreen.total_stars')}
                     </AppText>
                     <AppText variant="display" color="#fff">
                       {getKidStars(selectedKid.id)} ⭐
@@ -199,13 +200,13 @@ export default function KidScreen() {
 
               {selectedKid && bonuses.length > 0 ? (
                 <View style={styles.section}>
-                  <SectionHeader title="Bonuses" emoji="🎊" />
+                  <SectionHeader title={t('kidScreen.bonuses')} emoji="🎊" />
                   {bonuses.map((b) => (
                     <RewardRow
                       key={b.id}
                       tone="success"
                       amount={`+${b.stars}`}
-                      title={b.reason || 'Bonus'}
+                      title={b.reason || t('kidScreen.bonus')}
                       date={b.date}
                     />
                   ))}
@@ -214,20 +215,20 @@ export default function KidScreen() {
 
               {selectedKid && penalties.length > 0 ? (
                 <View style={styles.section}>
-                  <SectionHeader title="Penalties / Alerts" emoji="⚠️" />
+                  <SectionHeader title={t('kidScreen.penalties')} emoji="⚠️" />
                   {penalties.map((p) => (
                     <RewardRow
                       key={p.id}
                       tone="danger"
                       amount={`-${p.stars}`}
-                      title={p.reason || 'Penalty / Alert'}
+                      title={p.reason || t('kidScreen.penalty')}
                       date={p.date}
                     />
                   ))}
                 </View>
               ) : null}
 
-              <SectionHeader title="Tasks" emoji="✅" style={styles.tasksHeading} />
+              <SectionHeader title={t('kidScreen.tasks')} emoji="✅" style={styles.tasksHeading} />
             </View>
           }
           renderItem={({ item, index }) => {
@@ -308,7 +309,7 @@ export default function KidScreen() {
                               </AppText>
                             </View>
                             <Badge tone={done ? 'success' : 'primary'} size="sm">
-                              {done ? '✓ Done' : 'Mark'}
+                              {done ? t('kidScreen.done') : t('kidScreen.mark')}
                             </Badge>
                           </Pressable>
                         );
@@ -316,7 +317,7 @@ export default function KidScreen() {
                     </View>
                     {penaltyTotal > 0 ? (
                       <Badge tone="danger" size="sm" style={{ marginTop: spacing.sm }}>
-                        {`Penalties: -${penaltyTotal} ⭐`}
+                        {t('kidScreen.penalties_total', { stars: penaltyTotal })}
                       </Badge>
                     ) : null}
                   </View>
@@ -327,8 +328,8 @@ export default function KidScreen() {
           ListEmptyComponent={
             <EmptyState
               emoji="🗒️"
-              title="No tasks yet"
-              message="A parent can add tasks from the Parent dashboard."
+              title={t('kidScreen.no_tasks')}
+              message={t('kidScreen.no_tasks_msg')}
             />
           }
         />
@@ -340,15 +341,15 @@ export default function KidScreen() {
       <Dialog
         visible={pinModalVisible}
         onClose={() => setPinModalVisible(false)}
-        title="Enter your 4-digit PIN"
+        title={t('kidScreen.enter_pin')}
         actions={[
-          { label: 'Cancel', variant: 'ghost', onPress: () => setPinModalVisible(false) },
-          { label: 'Unlock', onPress: verifyPin },
+          { label: t('kidScreen.cancel'), variant: 'ghost', onPress: () => setPinModalVisible(false) },
+          { label: t('kidScreen.unlock'), onPress: verifyPin },
         ]}
       >
         <TextField
           value={pinValue}
-          onChangeText={(t) => setPinValue(t.replace(/[^0-9]/g, '').slice(0, 4))}
+          onChangeText={(v) => setPinValue(v.replace(/[^0-9]/g, '').slice(0, 4))}
           keyboardType="number-pad"
           placeholder="1234"
           maxLength={4}
@@ -406,7 +407,7 @@ function RewardRow({
         </AppText>
       </View>
       <Badge tone="neutral" size="sm">
-        View-only
+        {t('kidScreen.view_only')}
       </Badge>
     </Card>
   );
